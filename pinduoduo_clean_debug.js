@@ -1,6 +1,7 @@
 /*
  * 拼多多响应清理 — Quantumult X 原生全量版 v3.4（2026-11-12）
  *
+ * v3.6.1：调试通知标题加时间（时:分:秒）；统计上报域名不再弹通知；空正文改为“-”避免显示 (null)。
  * v3.4：调试版对空响应/非 JSON 响应也弹通知（显示域名、Content-Type、长度）。
  * v3.3.1：调试通知标题在非 api.pinduoduo.com 域名时显示域名。
  * v3.2.1：调试版通知增加底栏结构信息（tab 字段名、同层字段、名字带 tab 的其它字段），主版行为不变。
@@ -24,14 +25,23 @@
     var DEBUG = true;
     var url = ($request && $request.url) || "";
 
+    // 调试：通知标题前加时间，区分冷启动与刷新；统计上报域名不报
+    var NOISY = /^https?:\/\/(th|ta|th-a|th-b|ta-a)\.(pinduoduo|yangkeduo)\.com\//;
+    function stamp() {
+      var d = new Date();
+      return [d.getHours(), d.getMinutes(), d.getSeconds()].map(function (n) {
+        return (n < 10 ? "0" : "") + n;
+      }).join(":");
+    }
+
     // 调试：非 JSON / 空响应也报告（排查二进制或加密通道）
     function debugRaw(why) {
-      if (!DEBUG) return;
+      if (!DEBUG || NOISY.test(url)) return;
       var h = ($response && $response.headers) || {};
       var ct = h["Content-Type"] || h["content-type"] || "?";
       var len = ($response && $response.body) ? $response.body.length : 0;
-      $notify("PDD调试[" + why + "] " + url.split("?")[0].replace(/^https?:\/\//, ""),
-        "类型:" + ct + " 长度:" + len, "");
+      $notify(stamp() + " PDD调试[" + why + "] " + url.split("?")[0].replace(/^https?:\/\//, ""),
+        "类型:" + ct + " 长度:" + len, "-");
     }
 
     if (!$response || !$response.body) {
@@ -249,7 +259,7 @@
     if (DEBUG && (/hub|personal/.test(url) || notes.length)) {
       var path = url.split("?")[0].replace(/^https?:\/\/(api\.pinduoduo\.com)?/, ""); // 非主接口域名时保留域名
       var qs = (url.split("?")[1] || "").split("&").map(function (p) { return p.split("=")[0]; }).filter(Boolean);
-      $notify("PDD调试 " + path, ($response.body.length / 1024).toFixed(0) + "KB " +
+      $notify(stamp() + " PDD调试 " + path, ($response.body.length / 1024).toFixed(0) + "KB " +
         (changed ? "已修改" : "未修改") + (qs.length ? " 参数:" + qs.slice(0, 8).join(",") : ""),
         notes.length ? notes.join(" | ") : "未发现底栏/月卡字段");
     }
