@@ -1,0 +1,8 @@
+#!name = 【诊断测试】个人中心接口 reject 探针
+#!desc = 临时测试用：若本资源生效，打开拼多多个人中心会加载失败/空白；测完请删除或停用本资源。
+#!version = 1.0
+
+# 探针：直接拦截个人中心 hub 接口（与开屏同为 reject 机制）
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url reject
+
+hostname = api.pinduoduo.com, api.yangkeduo.com
