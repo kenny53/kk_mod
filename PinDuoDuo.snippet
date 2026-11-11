@@ -1,14 +1,14 @@
 #!name = 拼多多去广告（Quantumult X 原生全量版）
-#!desc = v3.2：需配合分流 PinDuoDuo_filter.list（拦截 Titan 长连接）才会生效。
+#!desc = v3.3：需配合分流 PinDuoDuo_filter.list（拦截 Titan 长连接）才会生效。
 #!author = Rumi for Nero
 #!date = 2026-11-11
-#!version = 3.2
+#!version = 3.3
 # 礼仪说明：本文件为独立原创实现，未复制/转写 ZenmoFeiShi、可莉的任何文件；
 # 底栏/弹窗净化方向与 Titan 长连接拦截思路参考 ZenmoFeiShi/Qx 原生 snippet，特此致谢。
 # 与可莉的 Loon 插件无代码关系，未使用其分发资源。仅供个人学习自用。
 
 # ============ 使用前必读 ============
-# 1. 【必需】分流 → 引用 添加 PinDuoDuo_filter.list（策略 reject，排在宽泛直连之前）。
+# 1. 【必需】分流 → 引用 添加 PinDuoDuo_filter.list（不要设策略覆盖，排在宽泛直连之前）。
 #    拼多多默认把 API 走 Titan 私有长连接，不拦它本文件不会命中任何请求。
 # 2. 本文件请加在「重写 → 引用」（不是分流），开启重写 + MITM 并信任证书。
 # 3. 同一 App 不要叠加其它拼多多重写（ZenmoFeiShi/Qx 的 Pinduoduo.snippet 二选一）。

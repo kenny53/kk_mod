@@ -1,10 +1,11 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v3.2（2026-11-11）
+# 拼多多配套分流 — 原生全量版 v3.3（2026-11-11）
 # 【必需】拦截 Titan 私有长连接，使首页/个人中心等 API 回落到普通 HTTPS 接口
 # （api.pinduoduo.com），重写才能命中。
-# 用法：分流 → 引用 添加本地址，策略设为 reject（force-policy=reject）；
+# 用法：分流 → 引用 添加本地址，【不要设置策略覆盖 / force-policy】——每行自带策略，
+#       v3.3 起含 direct 行，若被强制为 reject 会导致拼多多整个无法使用。
 # 必须排在 geoip,cn,direct 等宽泛直连规则之前。也可把规则行粘进 [filter_local]。
-# Titan 域名参考自 ZenmoFeiShi/Qx；HTTPDNS 部分 IP 参考 zirawell/R-Store 的拼多多列表，致谢。
+# Titan 域名与部分内置 IP 参考自 ZenmoFeiShi/Qx（其 Surge/Loon 版以 no-resolve 实现同一思路）；HTTPDNS 部分 IP 参考 zirawell/R-Store 的拼多多列表，致谢。
 # ============================================================
 
 # --- Titan 长连接（必需）---
@@ -21,8 +22,59 @@ ip-cidr, 49.234.252.116/32, reject
 ip-cidr, 49.234.252.117/32, reject
 ip6-cidr, 2402:4e00:c030:1b00::3a/128, reject
 ip6-cidr, 2402:4e00:c030:1b00::e/128, reject
-# 主 Titan 不按 IP 拦：实测与 api.pinduoduo.com / api.yangkeduo.com 共用同一批网关 IP，
-# 按 IP 拦会误伤购物接口。改为切断其自有 HTTPDNS，让 App 只能走系统 DNS（上面域名已拦）。
+
+# --- 主 Titan 直连 IP（v3.3，必需）---
+# Titan 与 api.pinduoduo.com 等购物接口共用同一批网关 IP。QX 没有 Surge/Loon 的 no-resolve，
+# 这里利用 QX 固定的规则优先级（host > host-suffix > … > ip-cidr）模拟它：
+# 先把所有“按域名访问”的拼多多请求用 host-suffix 放行，域名请求就不会再落到下面的 IP 规则；
+# 只有绕过 DNS、按裸 IP 直连的 Titan 长连接才会被 ip-cidr 拦下。
+# 上面的 titan 精确 host 规则优先级高于 host-suffix，仍然生效。
+host-suffix, pinduoduo.com, direct
+host-suffix, yangkeduo.com, direct
+host-suffix, pinduoduo.net, direct
+ip-cidr, 49.234.252.81/32, reject
+ip-cidr, 49.235.102.10/32, reject
+ip-cidr, 49.235.102.100/32, reject
+ip-cidr, 49.235.102.101/32, reject
+ip-cidr, 49.235.102.145/32, reject
+ip-cidr, 49.235.102.146/32, reject
+ip-cidr, 49.235.102.147/32, reject
+ip-cidr, 49.235.102.190/32, reject
+ip-cidr, 49.235.102.191/32, reject
+ip-cidr, 49.235.102.192/32, reject
+ip-cidr, 49.235.102.235/32, reject
+ip-cidr, 49.235.102.236/32, reject
+ip-cidr, 49.235.102.237/32, reject
+ip-cidr, 81.69.104.17/32, reject
+ip-cidr, 81.69.104.33/32, reject
+ip-cidr, 81.69.105.47/32, reject
+ip-cidr, 81.69.105.56/32, reject
+ip-cidr, 81.69.116.17/32, reject
+ip-cidr, 81.69.116.33/32, reject
+ip-cidr, 81.69.204.21/32, reject
+ip-cidr, 81.69.208.12/32, reject
+ip-cidr, 81.69.208.23/32, reject
+ip-cidr, 81.69.212.29/32, reject
+ip-cidr, 111.231.95.17/32, reject
+ip-cidr, 111.231.130.223/32, reject
+ip-cidr, 117.185.244.145/32, reject
+ip-cidr, 175.24.144.100/32, reject
+ip-cidr, 183.194.214.14/32, reject
+ip-cidr, 183.194.214.20/32, reject
+ip-cidr, 183.194.214.21/32, reject
+ip-cidr, 212.129.220.101/32, reject
+ip-cidr, 212.129.220.102/32, reject
+ip-cidr, 212.129.220.108/32, reject
+ip-cidr, 212.129.220.109/32, reject
+ip-cidr, 212.129.220.115/32, reject
+ip-cidr, 212.129.220.116/32, reject
+ip-cidr, 212.129.220.122/32, reject
+ip-cidr, 212.129.220.124/32, reject
+ip-cidr, 212.129.232.162/32, reject
+ip6-cidr, 2402:4e00:c030:1b00::60/128, reject
+ip6-cidr, 2402:4e00:c030:1b00::63/128, reject
+ip6-cidr, 2402:4e00:c032:200::22/128, reject
+ip6-cidr, 2402:4e00:c032:200::a8/128, reject
 
 # --- 拼多多自有 HTTPDNS（必需，v3.2）---
 # App 通过它直接拿到 Titan IP 后按 IP 直连，可绕过上面的域名拦截。
