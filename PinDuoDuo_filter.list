@@ -1,14 +1,37 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v2.0（2026-11-11）
-# 用法：加到 [filter_remote] 并设 force-policy=reject，
-# 或把规则行粘进 [filter_local]。放在宽泛直连规则之前。
+# 拼多多配套分流 — 原生全量版 v3.0（2026-11-11）
+# 【必需】不是可选项：不加本列表，重写规则大概率零效果。
+# 原因：拼多多把首页 hub、个人中心等 API 请求走自家 Titan 私有长连接，
+# 不经过 HTTPS，MITM 看不到，重写无从触发。拦掉 Titan 后 App 会回落到
+# 普通 HTTPS 接口（api.pinduoduo.com），重写才能命中。
+# 用法：分流 → 引用 添加本地址，策略设为 reject（force-policy=reject）；
+# 必须排在 geoip,cn,direct 等宽泛直连规则之前。也可把规则行粘进 [filter_local]。
+# Titan 域名/IP 清单参考自 ZenmoFeiShi/Qx 的 Pinduoduo.snippet，致谢。
 # ============================================================
 
-# 统计 / 性能监控域名（拦掉不影响购物功能）
-host-suffix, titan.pinduoduo.com, reject
-host-suffix, apm.pinduoduo.com, reject
+# --- Titan 长连接（必需）---
+host, titan.pinduoduo.com, reject
+host, titan-mt.pinduoduo.com, reject
+# Titan 直连 IP（App 内置，DNS 拦截后会直接连这些地址）
+ip-cidr, 81.69.105.47/32, reject
+ip-cidr, 81.69.104.17/32, reject
+ip-cidr, 81.69.104.33/32, reject
+ip-cidr, 81.69.204.21/32, reject
+ip-cidr, 81.69.105.56/32, reject
+ip-cidr, 81.69.116.33/32, reject
+ip-cidr, 49.235.102.145/32, reject
+ip-cidr, 49.235.102.190/32, reject
+ip-cidr, 49.235.102.235/32, reject
+ip-cidr, 111.231.130.223/32, reject
+ip-cidr, 212.129.232.162/32, reject
+ip-cidr, 111.231.95.17/32, reject
+ip-cidr, 183.194.214.14/32, reject
+ip-cidr, 183.194.214.20/32, reject
+ip-cidr, 183.194.214.21/32, reject
+ip-cidr, 117.185.244.145/32, reject
 
-# 广告素材 CDN（只拦这几个子域，不动 pddpic.com 商品图主域）
+# --- 性能监控 / 广告素材（可选，拦掉不影响购物）---
+host, apm.pinduoduo.com, reject
 host, cdl-1.pddpic.com, reject
 host, cdl-p2.pddpic.com, reject
 host, cd-1.pddpic.com, reject

@@ -8,25 +8,29 @@
 
 - 本仓代码为**独立原创实现**，未复制、未转写 ZenmoFeiShi 或可莉（luestr）的任何规则/脚本文件。
 - 接口路径与响应字段名是拼多多 App 的公开结构事实，任何实现都必然会碰到相同的字段；实现代码（解析、删除、放行逻辑）为本仓原创。
-- 底栏精简与全局弹窗这两个净化方向，与 ZenmoFeiShi 在其 QX 仓公开维护的做法一致，特此致谢并指路原版：[ZenmoFeiShi/Qx](https://github.com/ZenmoFeiShi/Qx) —— 想用原版请直接去那边引用。
+- 底栏精简与全局弹窗这两个净化方向，以及 Titan 长连接拦截（v3.0 起，域名/IP 清单参考其 snippet），与 ZenmoFeiShi 在其 QX 仓公开维护的做法一致，特此致谢并指路原版：[ZenmoFeiShi/Qx](https://github.com/ZenmoFeiShi/Qx) —— 想用原版请直接去那边引用。
 - 与可莉的 Loon 插件**无代码关系**，未使用其插件中心分发的任何资源；尊重其“禁止搬运、索引、二改”的立场，本仓存在的理由正是为 Quantumult X 用户提供一份不依赖该插件的原生替代。
 - 仅供个人学习与自用，请勿商业使用或二次分发牟利。如相关作者认为本仓有任何不妥，欢迎提 issue，将及时修改或删除。
 
-## 安装
+## 安装（两步都要做）
 
-在 Quantumult X「重写 → 引用」中添加（把 `kenny53/kk_mod` 换成本仓库实际路径）：
-
-```
-https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
-```
-
-配套分流（可选）在「分流 → 引用」中添加，并使其优先于宽泛直连规则：
+**第 1 步｜分流 → 引用**（必需，策略选 reject，排在 `geoip, cn, direct` 等宽泛直连规则之前）：
 
 ```
 https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo_filter.list
 ```
 
-然后：开启重写与 HTTPS 解密（MITM）、安装并信任证书，确认 `api.pinduoduo.com`、`api.yangkeduo.com` 在 MITM 主机名内，重启拼多多。
+**第 2 步｜重写 → 引用**：
+
+```
+https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
+```
+
+然后：开启重写与 HTTPS 解密（MITM）、安装并信任证书，确认 `api.pinduoduo.com`、`api.yangkeduo.com` 在 MITM 主机名内，**彻底杀掉拼多多后台再打开**（Titan 长连接要断开重连才会回落 HTTPS）。
+
+> 为什么第 1 步是必需的：拼多多把首页、个人中心等 API 请求走自家 Titan 私有长连接，不经过 HTTPS，MITM 看不到，任何重写都不会命中。拦掉 Titan（域名 + App 内置直连 IP）后 App 回落到普通 HTTPS 接口，重写才生效。Surge / Loon 的拼多多插件同样会拦 Titan。
+
+不想用远程引用时，可用 `pinduoduo_local.conf`，把其中 `[filter_local]` / `[rewrite_local]` / `[mitm]` 三段并入当前配置的同名段落。
 
 ## 覆盖范围
 
@@ -36,27 +40,31 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo_filter.list
 | 首页 hub | 底栏只保留 首页/聊天/个人中心；删会场推广横幅 `irregular_banner_dy`、热搜推广词 |
 | oak 渲染 | 删底部推广区 `bottom_section_list`、`ui.bottom_section`、直播浮窗 `ui.live_section` |
 | 个人中心 hub | 删月卡推广入口 `monthly_card_entrance` |
-| 全局弹窗 | `hungary/global` 清空弹窗列表；`nagato/gather` 置 `valid_data=false` |
+| 全局弹窗 | `hungary/global` 清空弹窗列表；`nagato/gather` 各弹窗子对象置 `valid_data=false` |
 | 搜索 | 删推广扩展区 `expansion` |
 | 订单 | 订单详情删底部推荐 `goods_list`；订单列表删 `order_growth_tip`；订单页删营销横幅 `marketing_banner_vo`、物流页推荐 |
-| 分流（可选） | titan/apm 统计域名、广告素材 CDN 子域 reject |
+| 分流（必需） | Titan 长连接域名 + 直连 IP reject（生效前提）；另含 apm 监控、广告素材 CDN 子域 |
 
-脚本原则：只删上列推广/布局字段，不动商品、价格、订单金额；字段不存在即跳过，解析失败或异常一律原样放行。
+脚本原则：只删上列推广/布局字段，不动商品、价格、订单金额；字段不存在即跳过，解析失败或异常一律原样放行。16 位以上的长整数（订单号、商品 ID 等）在解析前做占位保护、输出时原样还原，不会因 JS 数字精度被改写。
 
 ## 已知边界
 
 - Loon 原插件有一条针对 `api.pinduoduo.com` 的 QUIC 条件拦截，Quantumult X 无等价语法，本版未做（也未用全局禁 QUIC 替代）。
 - 首页图标区（icon_set）属于功能瘦身而非广告，本版未删。
-- 本版已经过本地模拟测试（字段清理/放行逻辑），**尚未在真机拼多多上验证**；App 改版后接口字段可能变化，失效时以抓包结果为准更新。
+- Titan 直连 IP 为 App 内置地址，拼多多更换后需更新清单；若拦截后个别功能（如消息实时推送）变慢，属回落 HTTPS 的正常代价。
+- 本版已经过本地模拟测试（字段清理/放行/长整数保护），**尚未在真机拼多多上验证**；App 改版后接口字段可能变化，失效时以抓包结果为准更新。
 
 ## 文件
 
 - `PinDuoDuo.snippet` — 重写引用入口
-- `pinduoduo_clean.js` — v2.1 及以前的 JS 脚本，v2.2 起弃用（改用 snippet 内的 jsonjq），保留作历史参考
-- `PinDuoDuo_filter.list` — 配套分流规则（可选）
+- `pinduoduo_clean.js` — 响应清理脚本（v3.0 起所有 body 类规则统一使用）
+- `PinDuoDuo_filter.list` — 配套分流规则（**必需**，含 Titan 拦截）
+- `pinduoduo_local.conf` — 本地版（分流 + 重写 + MITM 三段）
+- `test-personal-reject.snippet` — 诊断探针（个人中心接口单行 reject，测完删除）
 
 ## 更新日志
 
+- v3.0（2026-11-11）：定位 v2.x 零效果的根因——拼多多 API 走 Titan 私有长连接，未经 HTTPS，重写从未被触发（与 v2.0–v2.3 换机制均无变化、关闭本资源无差异的现象一致）。分流列表改为必需并补齐 `titan-mt` 与 Titan 直连 IP（此前仅有 `titan.pinduoduo.com` 且被标为“可选统计域名”）；body 规则统一回 JS 脚本；脚本新增长整数保护，修正 `nagato/gather` 的 `valid_data` 位置；本地版增加 `[filter_local]` 段。待真机验收。
 - v2.3（2026-11-11）：二分测试版。v2.2 真机反馈广告全面回归（连原本有效的开屏 reject 都失效，疑似整条资源解析失败——长 jq 行中的特殊字符或资源解析器所致）。本版回到 v2.1 基线（开屏等 reject 恢复），仅把个人中心一条换成最简 jsonjq `del(.monthly_card_entrance?)` 单独验证 jq 机制；其余接口仍用 JS 脚本版。
 - v2.2（2026-11-11）：机制切换。真机确认 v2.0/v2.1 的 `script-response-body` 未生效（QX 对脚本型 body 重写的 1024KB 上限，拼多多首页/个人中心响应过大被跳过；而 Surge/Loon 用 jq 不受此限、同接口同字段在其上有效）。全部改用 QX 原生 `jsonjq-response-body`（QX 官方 sample v1.5.5 已支持，与 Loon 的 `http-response-jq` 同机制），每接口一条组合 jq 表达式，均已在本地用真实 jq 验证（含字段缺失时原样通过）。`pinduoduo_clean.js` 自本版起弃用，保留在仓库仅作历史参考。
 - v2.1（2026-11-11）：真机反馈底栏仍为 5 个后的针对性修复——底栏过滤改为按字段触发（任一已挂脚本的响应里出现 `bottom_tabs` 即处理）并递归深层查找；重写规则放宽为 pinduoduo/yangkeduo 双主机，且不再要求接口 URL 带查询参数。

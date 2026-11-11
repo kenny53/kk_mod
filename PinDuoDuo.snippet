@@ -1,19 +1,17 @@
 #!name = 拼多多去广告（Quantumult X 原生全量版）
-#!desc = v2.3 二分测试版：基线同 v2.1（脚本版），仅个人中心一条改用最简 jsonjq 验证机制。
+#!desc = v3.0：需配合分流 PinDuoDuo_filter.list（拦截 Titan 长连接）才会生效。
 #!author = Rumi for Nero
 #!date = 2026-11-11
-#!version = 2.3
+#!version = 3.0
 # 礼仪说明：本文件为独立原创实现，未复制/转写 ZenmoFeiShi、可莉的任何文件；
-# 底栏/弹窗净化方向与 ZenmoFeiShi/Qx 原生 snippet 一致，特此致谢（原版见其仓库）。
+# 底栏/弹窗净化方向与 Titan 长连接拦截思路参考 ZenmoFeiShi/Qx 原生 snippet，特此致谢。
 # 与可莉的 Loon 插件无代码关系，未使用其分发资源。仅供个人学习自用。
 
 # ============ 使用前必读 ============
-# 1. 本文件托管于 kenny53/kk_mod，脚本地址已指向该仓库。
-# 2. QX 中开启重写 + MITM 并信任证书；确认下方 hostname 已并入 MITM 名单。
-# 3. 同一 App 不要叠加其它拼多多重写（薯条 ZenmoFeiShi/Qx 的 Pinduoduo.snippet
-#    与本文件覆盖重叠，二选一即可）。
-# 4. v2.1：脚本改为按字段触发底栏过滤并深层查找；规则放宽为双主机、
-#    不再要求接口 URL 必须带查询参数。
+# 1. 【必需】分流 → 引用 添加 PinDuoDuo_filter.list（策略 reject，排在宽泛直连之前）。
+#    拼多多默认把 API 走 Titan 私有长连接，不拦它本文件不会命中任何请求。
+# 2. 本文件请加在「重写 → 引用」（不是分流），开启重写 + MITM 并信任证书。
+# 3. 同一 App 不要叠加其它拼多多重写（ZenmoFeiShi/Qx 的 Pinduoduo.snippet 二选一）。
 
 # --- 第一层：纯推广接口，直接拦截 ---
 
@@ -27,7 +25,7 @@
 
 ^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
 ^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url jsonjq-response-body 'del(.monthly_card_entrance?)'
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
 ^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
 ^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/growth\/nagato\/app\/index\/gather url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
 ^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
