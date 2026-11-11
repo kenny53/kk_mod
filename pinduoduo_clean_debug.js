@@ -1,6 +1,7 @@
 /*
- * 拼多多响应清理 — Quantumult X 原生全量版 v3.1（2026-11-11）
+ * 拼多多响应清理 — Quantumult X 原生全量版 v3.2.1（2026-11-11）
  *
+ * v3.2.1：调试版通知增加底栏结构信息（tab 字段名、同层字段、名字带 tab 的其它字段），主版行为不变。
  * v3.1：月卡入口改为按字段触发（任一已挂脚本的响应中出现即删，深度≤4）；
  *       DEBUG=true 时每次处理 hub 类接口都弹通知报告命中路径与删除结果
  *       （pinduoduo_clean_debug.js 由本文件生成，仅此开关不同）。
@@ -117,6 +118,12 @@
           return t && KEEP_TABS.indexOf(pageOf(t.link)) !== -1;
         });
         notes.push(path + key + " " + arr.length + "→" + (kept.length || arr.length));
+        if (DEBUG) {
+          // 调试：报告底栏页面、单个 tab 的字段名、同层其它字段名（找序号/签名/版本类校验字段）
+          notes.push("页面:" + arr.map(function (t) { return t && pageOf(t.link).replace(".html", ""); }).join(","));
+          notes.push("tab字段:" + (isObj(arr[0]) ? Object.keys(arr[0]).join(",") : typeof arr[0]));
+          notes.push("同层:" + Object.keys(node).filter(function (k) { return k !== key; }).join(","));
+        }
         if (kept.length && kept.length !== arr.length) {
           node[key] = kept;
           changed = true;
@@ -132,6 +139,27 @@
       });
     }
     filterTabsIn(obj, 0, "");
+
+    // 调试：全响应（含数组内）查找名字带 tab 的其它数组/对象字段，排查底栏的其它来源
+    if (DEBUG) {
+      var seen = 0;
+      (function scan(node, path, depth) {
+        if (!node || typeof node !== "object" || depth > 8 || seen >= 8) return;
+        if (Array.isArray(node)) {
+          for (var i = 0; i < node.length && i < 30; i++) scan(node[i], path.replace(/\.$/, "") + "[" + i + "].", depth + 1);
+          return;
+        }
+        Object.keys(node).forEach(function (k) {
+          var v = node[k];
+          if (/tab/i.test(k) && k !== "bottom_tabs" && k !== "buffer_bottom_tabs" &&
+              v && typeof v === "object" && seen < 8) {
+            seen++;
+            notes.push("其它:" + path + k + (Array.isArray(v) ? "[" + v.length + "]" : "{" + Object.keys(v).slice(0, 6).join(",") + "}"));
+          }
+          scan(v, path + k + ".", depth + 1);
+        });
+      })(obj, "", 0);
+    }
 
     if (/\/api\/alexa\/homepage\/hub/.test(url)) {
       // 首页：会场推广横幅 + 热搜推广词
@@ -206,8 +234,10 @@
 
     if (DEBUG && (/hub|personal/.test(url) || notes.length)) {
       var path = url.split("?")[0].replace(/^https?:\/\/[^\/]+/, "");
+      var qs = (url.split("?")[1] || "").split("&").map(function (p) { return p.split("=")[0]; }).filter(Boolean);
       $notify("PDD调试 " + path, ($response.body.length / 1024).toFixed(0) + "KB " +
-        (changed ? "已修改" : "未修改"), notes.length ? notes.join(" | ") :"未发现底栏/月卡字段");
+        (changed ? "已修改" : "未修改") + (qs.length ? " 参数:" + qs.slice(0, 8).join(",") : ""),
+        notes.length ? notes.join(" | ") : "未发现底栏/月卡字段");
     }
 
     if (changed) {
