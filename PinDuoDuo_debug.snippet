@@ -1,5 +1,5 @@
 #!name = 【调试版】拼多多去广告（会弹通知）
-#!desc = v4.0 与主版规则相同，脚本处理接口时弹通知报告命中与删除结果，并在原始响应中搜底栏标记。调试完换回主版。
+#!desc = v4.0.2 与主版规则相同，脚本处理接口时弹通知报告命中与删除结果，并在原始响应中搜底栏标记。调试完换回主版。
 #!author = Rumi for Nero
 #!date = 2026-11-12
 #!version = 4.0
@@ -41,19 +41,22 @@
 
 # --- 第二层：响应体清理（本仓脚本，按接口与字段处理） ---
 
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
 
 # 兜底：其余 alexa / philo 接口，脚本按字段处理底栏与月卡
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
 
 # 调试兜底：其余所有 api 接口也过一遍脚本
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.1
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
 
-hostname = api.pinduoduo.com, api.yangkeduo.com
+# 调试：解密 m.pinduoduo.net 及全部拼多多子域（与 Surge 解密 m.pinduoduo.net 对齐），定位首页刷新的底栏来源
+^https:\/\/[^\/]*(pinduoduo\.com|yangkeduo\.com|pinduoduo\.net)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.0.2
+
+hostname = api.pinduoduo.com, api.yangkeduo.com, m.pinduoduo.net, *.pinduoduo.com, *.yangkeduo.com
