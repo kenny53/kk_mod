@@ -1,6 +1,7 @@
 /*
- * 拼多多响应清理 — Quantumult X 原生全量版 v3.2.1（2026-11-11）
+ * 拼多多响应清理 — Quantumult X 原生全量版 v3.4（2026-11-12）
  *
+ * v3.4：调试版对空响应/非 JSON 响应也弹通知（显示域名、Content-Type、长度）。
  * v3.3.1：调试通知标题在非 api.pinduoduo.com 域名时显示域名。
  * v3.2.1：调试版通知增加底栏结构信息（tab 字段名、同层字段、名字带 tab 的其它字段），主版行为不变。
  * v3.1：月卡入口改为按字段触发（任一已挂脚本的响应中出现即删，深度≤4）；
@@ -20,13 +21,24 @@
 
 (function () {
   try {
+    var DEBUG = true;
+    var url = ($request && $request.url) || "";
+
+    // 调试：非 JSON / 空响应也报告（排查二进制或加密通道）
+    function debugRaw(why) {
+      if (!DEBUG) return;
+      var h = ($response && $response.headers) || {};
+      var ct = h["Content-Type"] || h["content-type"] || "?";
+      var len = ($response && $response.body) ? $response.body.length : 0;
+      $notify("PDD调试[" + why + "] " + url.split("?")[0].replace(/^https?:\/\//, ""),
+        "类型:" + ct + " 长度:" + len, "");
+    }
+
     if (!$response || !$response.body) {
+      debugRaw("空响应");
       $done({});
       return;
     }
-
-    var DEBUG = true;
-    var url = ($request && $request.url) || "";
     var notes = [];
     var BIG = "__pdd_bigint__";
 
@@ -77,6 +89,7 @@
     try {
       obj = JSON.parse(protectBigInts($response.body));
     } catch (e) {
+      debugRaw("非JSON");
       $done({});
       return;
     }

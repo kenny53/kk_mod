@@ -1,5 +1,5 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v3.3（2026-11-11）
+# 拼多多配套分流 — 原生全量版 v3.4（2026-11-11）
 # 【必需】拦截 Titan 私有长连接，使首页/个人中心等 API 回落到普通 HTTPS 接口
 # （api.pinduoduo.com），重写才能命中。
 # 用法：分流 → 引用 添加本地址，【不要设置策略覆盖 / force-policy】——每行自带策略，
@@ -13,6 +13,8 @@ host, titan.pinduoduo.com, reject
 host, titan-mt.pinduoduo.com, reject
 host, titan.yangkeduo.com, reject
 host, titan-mt.yangkeduo.com, reject
+# m.pinduoduo.net：与购物接口同网关，疑似另一条私有数据通道，v3.4 起拦截（zirawell/R-Store 拼多多列表亦启用此条）
+host, m.pinduoduo.net, reject
 # titan-mt 专用 IP（2026-11-11 多地 DNS 实测，与购物接口无重叠）
 ip-cidr, 49.234.0.11/32, reject
 ip-cidr, 49.234.0.114/32, reject
