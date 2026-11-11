@@ -1,0 +1,42 @@
+#!name = 【调试版】拼多多去广告（会弹通知）
+#!desc = 与主版规则相同，脚本每次处理首页/个人中心接口会弹通知报告命中路径和删除结果。调试完换回主版。
+#!author = Rumi for Nero
+#!date = 2026-11-11
+#!version = 3.1
+# 礼仪说明：本文件为独立原创实现，未复制/转写 ZenmoFeiShi、可莉的任何文件；
+# 底栏/弹窗净化方向与 Titan 长连接拦截思路参考 ZenmoFeiShi/Qx 原生 snippet，特此致谢。
+# 与可莉的 Loon 插件无代码关系，未使用其分发资源。仅供个人学习自用。
+
+# ============ 使用前必读 ============
+# 1. 【必需】分流 → 引用 添加 PinDuoDuo_filter.list（策略 reject，排在宽泛直连之前）。
+#    拼多多默认把 API 走 Titan 私有长连接，不拦它本文件不会命中任何请求。
+# 2. 本文件请加在「重写 → 引用」（不是分流），开启重写 + MITM 并信任证书。
+# 3. 同一 App 不要叠加其它拼多多重写（ZenmoFeiShi/Qx 的 Pinduoduo.snippet 二选一）。
+
+# --- 第一层：纯推广接口，直接拦截 ---
+
+# 开屏广告
+^https?:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/cappuccino\/splash url reject
+
+# 个人中心活动推广流（纯推广接口，返回空字典避免报错重试）
+^https?:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ktt_gateway\/activity\/feeds\/personal_home_page\/ url reject-dict
+
+# --- 第二层：响应体清理（统一脚本，按字段与接口分流处理） ---
+
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/growth\/nagato\/app\/index\/gather url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+
+# 兜底：其余 alexa / philo 接口（含刷新、个人中心新路径），脚本按字段处理底栏与月卡
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+
+# 调试兜底：其余所有 api 接口也过一遍脚本，只在出现底栏/月卡字段或 hub/personal 路径时弹通知
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js
+
+hostname = api.pinduoduo.com, api.yangkeduo.com

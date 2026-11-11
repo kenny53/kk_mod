@@ -28,7 +28,7 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
 
 然后：开启重写与 HTTPS 解密（MITM）、安装并信任证书，确认 `api.pinduoduo.com`、`api.yangkeduo.com` 在 MITM 主机名内，**彻底杀掉拼多多后台再打开**（Titan 长连接要断开重连才会回落 HTTPS）。
 
-> 为什么第 1 步是必需的：拼多多把首页、个人中心等 API 请求走自家 Titan 私有长连接，不经过 HTTPS，MITM 看不到，任何重写都不会命中。拦掉 Titan（域名 + App 内置直连 IP）后 App 回落到普通 HTTPS 接口，重写才生效。Surge / Loon 的拼多多插件同样会拦 Titan。
+> 为什么第 1 步是必需的：拼多多把首页、个人中心等 API 请求走自家 Titan 私有长连接，不经过 HTTPS，MITM 看不到，任何重写都不会命中。拦掉 Titan 域名后 App 回落到普通 HTTPS 接口，重写才生效。Surge / Loon 的拼多多插件同样会拦 Titan。
 
 不想用远程引用时，可用 `pinduoduo_local.conf`，把其中 `[filter_local]` / `[rewrite_local]` / `[mitm]` 三段并入当前配置的同名段落。
 
@@ -53,7 +53,7 @@ udp_whitelist = 1-442, 444-65535
 | 全局弹窗 | `hungary/global` 清空弹窗列表；`nagato/gather` 各弹窗子对象置 `valid_data=false` |
 | 搜索 | 删推广扩展区 `expansion` |
 | 订单 | 订单详情删底部推荐 `goods_list`；订单列表删 `order_growth_tip`；订单页删营销横幅 `marketing_banner_vo`、物流页推荐 |
-| 分流（必需） | Titan 长连接域名 + 直连 IP reject（生效前提）；另含 apm 监控、广告素材 CDN 子域 |
+| 分流（必需） | Titan 长连接域名 reject（生效前提）；另含 apm 监控、广告素材 CDN 子域 |
 
 脚本原则：只删上列推广/布局字段，不动商品、价格、订单金额；字段不存在即跳过，解析失败或异常一律原样放行。16 位以上的长整数（订单号、商品 ID 等）在解析前做占位保护、输出时原样还原，不会因 JS 数字精度被改写。
 
@@ -61,7 +61,7 @@ udp_whitelist = 1-442, 444-65535
 
 - Loon 原插件有一条针对 `api.pinduoduo.com` 的 QUIC 条件拦截，Quantumult X 无等价语法，本版未做（也未用全局禁 QUIC 替代）。
 - 首页图标区（icon_set）属于功能瘦身而非广告，本版未删。
-- Titan 直连 IP 为 App 内置地址，拼多多更换后需更新清单；若拦截后个别功能（如消息实时推送）变慢，属回落 HTTPS 的正常代价。
+- 不按 IP 拦 Titan：Titan 与购物接口共用网关 IP（见 v3.1 日志）；若拦截后个别功能（如消息实时推送）变慢，属回落 HTTPS 的正常代价。
 - 本版已经过本地模拟测试（字段清理/放行/长整数保护），**尚未在真机拼多多上验证**；App 改版后接口字段可能变化，失效时以抓包结果为准更新。
 
 ## 文件
@@ -69,11 +69,17 @@ udp_whitelist = 1-442, 444-65535
 - `PinDuoDuo.snippet` — 重写引用入口
 - `pinduoduo_clean.js` — 响应清理脚本（v3.0 起所有 body 类规则统一使用）
 - `PinDuoDuo_filter.list` — 配套分流规则（**必需**，含 Titan 拦截）
+- `PinDuoDuo_debug.snippet` + `pinduoduo_clean_debug.js` — 调试版：规则同主版，脚本处理首页/个人中心接口时弹通知报告命中路径与删除结果（调试脚本由主脚本把 `DEBUG` 改为 true 生成）
 - `pinduoduo_local.conf` — 本地版（分流 + 重写 + MITM 三段）
 - `test-personal-reject.snippet` — 诊断探针（个人中心接口单行 reject，测完删除）
 
 ## 更新日志
 
+- v3.1（2026-11-11）：
+  - **纠错**：前几轮真机测试期间用户 QX 的 MitM 开关处于关闭状态，v2.x–v3.0 的“零效果”结论及其上的推断（含 QUIC 排障）均在 MitM 关闭下得出，不再作为依据。MitM 打开后：Safari 探针生效；冷启动底栏 3 个，但下拉刷新后回到 5 个，月卡仍在。
+  - **撤回 v3.0 的 Titan IP 拦截**：多地 DNS 实测 Titan 与 `api.pinduoduo.com`、`api.yangkeduo.com` 解析到同一批网关 IP，按 IP 拦截会误伤购物接口，疑为“刷新后回到 5 个”的原因（待真机确认）。分流只保留域名拦截。
+  - 月卡入口改为按字段触发（任一已挂脚本的响应出现即删）；新增 `alexa`/`philo` 兜底规则以覆盖刷新与个人中心的其他路径。
+  - 新增调试版（弹通知），用于在无抓包条件下确认命中路径。
 - v3.0（2026-11-11）：定位 v2.x 零效果的根因——拼多多 API 走 Titan 私有长连接，未经 HTTPS，重写从未被触发（与 v2.0–v2.3 换机制均无变化、关闭本资源无差异的现象一致）。分流列表改为必需并补齐 `titan-mt` 与 Titan 直连 IP（此前仅有 `titan.pinduoduo.com` 且被标为“可选统计域名”）；body 规则统一回 JS 脚本；脚本新增长整数保护，修正 `nagato/gather` 的 `valid_data` 位置；本地版增加 `[filter_local]` 段。待真机验收。
 - v2.3（2026-11-11）：二分测试版。v2.2 真机反馈广告全面回归（连原本有效的开屏 reject 都失效，疑似整条资源解析失败——长 jq 行中的特殊字符或资源解析器所致）。本版回到 v2.1 基线（开屏等 reject 恢复），仅把个人中心一条换成最简 jsonjq `del(.monthly_card_entrance?)` 单独验证 jq 机制；其余接口仍用 JS 脚本版。
 - v2.2（2026-11-11）：机制切换。真机确认 v2.0/v2.1 的 `script-response-body` 未生效（QX 对脚本型 body 重写的 1024KB 上限，拼多多首页/个人中心响应过大被跳过；而 Surge/Loon 用 jq 不受此限、同接口同字段在其上有效）。全部改用 QX 原生 `jsonjq-response-body`（QX 官方 sample v1.5.5 已支持，与 Loon 的 `http-response-jq` 同机制），每接口一条组合 jq 表达式，均已在本地用真实 jq 验证（含字段缺失时原样通过）。`pinduoduo_clean.js` 自本版起弃用，保留在仓库仅作历史参考。

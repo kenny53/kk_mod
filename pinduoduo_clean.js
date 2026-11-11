@@ -1,6 +1,9 @@
 /*
- * 拼多多响应清理 — Quantumult X 原生全量版 v3.0（2026-11-11）
+ * 拼多多响应清理 — Quantumult X 原生全量版 v3.1（2026-11-11）
  *
+ * v3.1：月卡入口改为按字段触发（任一已挂脚本的响应中出现即删，深度≤4）；
+ *       DEBUG=true 时每次处理 hub 类接口都弹通知报告命中路径与删除结果
+ *       （pinduoduo_clean_debug.js 由本文件生成，仅此开关不同）。
  * v3.0：
  *   - 长整数保护：解析前把 16 位以上的整数字面量替换为占位字符串，
  *     输出前还原，避免订单号/商品 ID 等超过 2^53 的数字被 JSON.parse 改写；
@@ -20,7 +23,9 @@
       return;
     }
 
+    var DEBUG = false;
     var url = ($request && $request.url) || "";
+    var notes = [];
     var BIG = "__pdd_bigint__";
 
     // 把字符串外的长整数字面量包成字符串，返回新文本
@@ -103,7 +108,7 @@
     function pageOf(link) {
       return String(link || "").split("?")[0].split("#")[0].split("/").pop();
     }
-    function filterTabsIn(node, depth) {
+    function filterTabsIn(node, depth, path) {
       if (!isObj(node) || depth > 4) return;
       ["bottom_tabs", "buffer_bottom_tabs"].forEach(function (key) {
         var arr = node[key];
@@ -111,16 +116,22 @@
         var kept = arr.filter(function (t) {
           return t && KEEP_TABS.indexOf(pageOf(t.link)) !== -1;
         });
+        notes.push(path + key + " " + arr.length + "→" + (kept.length || arr.length));
         if (kept.length && kept.length !== arr.length) {
           node[key] = kept;
           changed = true;
         }
       });
+      // 个人中心月卡推广入口：按字段触发
+      if (Object.prototype.hasOwnProperty.call(node, "monthly_card_entrance")) {
+        del(node, "monthly_card_entrance");
+        notes.push(path + "monthly_card_entrance 已删");
+      }
       Object.keys(node).forEach(function (k) {
-        if (isObj(node[k])) filterTabsIn(node[k], depth + 1);
+        if (isObj(node[k])) filterTabsIn(node[k], depth + 1, path + k + ".");
       });
     }
-    filterTabsIn(obj, 0);
+    filterTabsIn(obj, 0, "");
 
     if (/\/api\/alexa\/homepage\/hub/.test(url)) {
       // 首页：会场推广横幅 + 热搜推广词
@@ -137,12 +148,6 @@
           del(r.ui, "bottom_section");
           del(r.ui, "live_section");
         }
-      });
-    }
-    if (/\/api\/philo\/personal\/hub/.test(url)) {
-      // 个人中心：月卡推广入口
-      roots().forEach(function (r) {
-        del(r, "monthly_card_entrance");
       });
     }
     if (/\/(aquarius|flow)\/hungary\/(window\/)?global\//.test(url)) {
@@ -197,6 +202,12 @@
         del(r, "marketing_banner_vo");
         if (isObj(r.shipping)) del(r.shipping, "banner_above_recommend");
       });
+    }
+
+    if (DEBUG && (/hub|personal/.test(url) || notes.length)) {
+      var path = url.split("?")[0].replace(/^https?:\/\/[^\/]+/, "");
+      $notify("PDD调试 " + path, ($response.body.length / 1024).toFixed(0) + "KB " +
+        (changed ? "已修改" : "未修改"), notes.length ? notes.join(" | ") :"未发现底栏/月卡字段");
     }
 
     if (changed) {
