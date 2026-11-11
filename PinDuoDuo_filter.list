@@ -1,0 +1,17 @@
+# ============================================================
+# 拼多多配套分流 — 原生全量版 v2.0（2026-11-11）
+# 用法：加到 [filter_remote] 并设 force-policy=reject，
+# 或把规则行粘进 [filter_local]。放在宽泛直连规则之前。
+# ============================================================
+
+# 统计 / 性能监控域名（拦掉不影响购物功能）
+host-suffix, titan.pinduoduo.com, reject
+host-suffix, apm.pinduoduo.com, reject
+
+# 广告素材 CDN（只拦这几个子域，不动 pddpic.com 商品图主域）
+host, cdl-1.pddpic.com, reject
+host, cdl-p2.pddpic.com, reject
+host, cd-1.pddpic.com, reject
+
+# 可选：推送网关。开启后收不到拼多多推送通知，默认关闭，需要时去掉行首分号
+;host-suffix, xg.pinduoduo.com, reject
