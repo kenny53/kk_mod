@@ -75,6 +75,7 @@ udp_whitelist = 1-442, 444-65535
 
 ## 更新日志
 
+- v4.1（2026-11-12）：**修正分流顺序错误（v3.3 引入）**。真机：QX 连接记录显示 `apm-a`、`meta` 命中本分流但策略为 DIRECT——同一资源内 QX 按从上到下首条命中匹配，而 v3.3 起插在中间的 `host-suffix, pinduoduo.com, direct` 抢先放行了排在其后的所有域名拦截（meta、th/ta、apm-a、自有 HTTPDNS 等），v3.3–v4.0 期间这些拦截实际未生效，仅排在其前的 Titan 4 条有效。v4.1 重排为：全部域名拦截 → 拼多多域名放行 → 裸 IP 拦截。
 - v4.0.1（2026-11-12）：按 Surge 公开模块逐项对账（自动化测试，见下）。修复脚本中搜索/订单页接口判断漏掉 yangkeduo 主机的问题。
   - 响应体字段删除：19 项（含个人中心 5 项）在 api.pinduoduo.com / api.yangkeduo.com 两主机均 19/19 通过；
   - 空 JSON 拦截：20 个接口 20/20 命中 reject-dict，另 ktt_gateway 推广流亦为 reject-dict；

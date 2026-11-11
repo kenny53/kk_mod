@@ -1,37 +1,64 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v4.0（2026-11-12）
-# 【必需】拦截 Titan 私有长连接，使首页/个人中心等 API 回落到普通 HTTPS 接口
-# （api.pinduoduo.com），重写才能命中。
+# 拼多多配套分流 — 原生全量版 v4.1（2026-11-12）
+# 【必需】拦截 Titan 私有长连接、自有 HTTPDNS、配置下发与统计，使首页等 API 回落到
+# 普通 HTTPS 接口（api.pinduoduo.com），重写才能命中。
 # 用法：分流 → 引用 添加本地址，【不要设置策略覆盖 / force-policy】——每行自带策略，
-#       v3.3 起含 direct 行，若被强制为 reject 会导致拼多多整个无法使用。
+#       本列表含 direct 行，若被强制为 reject 会导致拼多多整个无法使用。
 # 必须排在 geoip,cn,direct 等宽泛直连规则之前。也可把规则行粘进 [filter_local]。
-# Titan 域名与部分内置 IP 参考自 ZenmoFeiShi/Qx（其 Surge/Loon 版以 no-resolve 实现同一思路）；HTTPDNS 部分 IP 参考 zirawell/R-Store 的拼多多列表，致谢。
+# Titan 域名与部分内置 IP 参考自 ZenmoFeiShi/Qx（其 Surge/Loon 版以 no-resolve 实现同一思路）；
+# HTTPDNS 部分 IP 参考 zirawell/R-Store 的拼多多列表，致谢。
+#
+# 【顺序很重要】v4.1 真机确认：同一资源内 QX 按从上到下首条命中匹配，
+# 因此所有域名拦截必须排在下方 host-suffix 放行行之前，IP 规则排在最后。
 # ============================================================
 
-# --- Titan 长连接（必需）---
+# ===== 第一段：域名拦截（必须在放行行之前）=====
+
+# Titan 长连接
 host, titan.pinduoduo.com, reject
 host, titan-mt.pinduoduo.com, reject
 host, titan.yangkeduo.com, reject
 host, titan-mt.yangkeduo.com, reject
-# titan-mt 专用 IP（2026-11-11 多地 DNS 实测，与购物接口无重叠）
+
+# 配置下发 meta（疑为首页刷新时下发原版底栏）与统计上报
+host, meta.pinduoduo.com, reject
+host, meta.yangkeduo.com, reject
+host, th.pinduoduo.com, reject
+host, th-a.pinduoduo.com, reject
+host, th-b.pinduoduo.com, reject
+host, ta.pinduoduo.com, reject
+host, ta-a.pinduoduo.com, reject
+host, apm-a.pinduoduo.com, reject
+
+# 拼多多自有 HTTPDNS（App 借此拿到 Titan IP 后直连，绕过域名拦截）
+host, dns.pinduoduo.com, reject
+host, httpdns.pinduoduo.com, reject
+host, dns.yangkeduo.com, reject
+host, httpdns.yangkeduo.com, reject
+
+# 性能监控 / 广告素材 CDN 子域（拦掉不影响购物）
+host, apm.pinduoduo.com, reject
+host, cdl-1.pddpic.com, reject
+host, cdl-p2.pddpic.com, reject
+host, cd-1.pddpic.com, reject
+
+# 可选：推送网关。开启后收不到拼多多推送通知，默认关闭，需要时去掉行首分号
+;host, xg.pinduoduo.com, reject
+
+# ===== 第二段：放行拼多多域名请求（模拟 Surge/Loon 的 no-resolve）=====
+# Titan 与购物接口共用网关 IP。按域名访问的拼多多请求在此放行，不再落到下方 IP 规则；
+# 只有绕过 DNS、按裸 IP 直连的 Titan / HTTPDNS 连接才会被第三段拦下。
+host-suffix, pinduoduo.com, direct
+host-suffix, yangkeduo.com, direct
+host-suffix, pinduoduo.net, direct
+
+# ===== 第三段：裸 IP 拦截（Titan 国内/海外节点、titan-mt、HTTPDNS、刷新时观察到的轮换 IP 段）=====
 ip-cidr, 49.234.0.11/32, reject
 ip-cidr, 49.234.0.114/32, reject
 ip-cidr, 49.234.0.115/32, reject
 ip-cidr, 49.234.252.114/32, reject
 ip-cidr, 49.234.252.116/32, reject
 ip-cidr, 49.234.252.117/32, reject
-ip6-cidr, 2402:4e00:c030:1b00::3a/128, reject
-ip6-cidr, 2402:4e00:c030:1b00::e/128, reject
-
-# --- 主 Titan 直连 IP（v3.3，必需）---
-# Titan 与 api.pinduoduo.com 等购物接口共用同一批网关 IP。QX 没有 Surge/Loon 的 no-resolve，
-# 这里利用 QX 固定的规则优先级（host > host-suffix > … > ip-cidr）模拟它：
-# 先把所有“按域名访问”的拼多多请求用 host-suffix 放行，域名请求就不会再落到下面的 IP 规则；
-# 只有绕过 DNS、按裸 IP 直连的 Titan 长连接才会被 ip-cidr 拦下。
-# 上面的 titan 精确 host 规则优先级高于 host-suffix，仍然生效。
-host-suffix, pinduoduo.com, direct
-host-suffix, yangkeduo.com, direct
-host-suffix, pinduoduo.net, direct
 ip-cidr, 49.234.252.81/32, reject
 ip-cidr, 49.235.102.10/32, reject
 ip-cidr, 49.235.102.100/32, reject
@@ -71,12 +98,6 @@ ip-cidr, 212.129.220.116/32, reject
 ip-cidr, 212.129.220.122/32, reject
 ip-cidr, 212.129.220.124/32, reject
 ip-cidr, 212.129.232.162/32, reject
-ip6-cidr, 2402:4e00:c030:1b00::60/128, reject
-ip6-cidr, 2402:4e00:c030:1b00::63/128, reject
-ip6-cidr, 2402:4e00:c032:200::22/128, reject
-ip6-cidr, 2402:4e00:c032:200::a8/128, reject
-
-# 海外节点（v3.5，2026-11-12 以海外 DNS 实测：titan/titan-mt × pinduoduo/yangkeduo）
 ip-cidr, 49.51.78.195/32, reject
 ip-cidr, 49.51.130.105/32, reject
 ip-cidr, 43.173.159.124/32, reject
@@ -85,11 +106,6 @@ ip-cidr, 119.28.183.248/32, reject
 ip-cidr, 124.156.122.186/32, reject
 ip-cidr, 162.62.221.18/32, reject
 ip-cidr, 170.106.62.26/32, reject
-ip6-cidr, 240d:c000:f000:ac00:3896:d1ce:30a2:1/128, reject
-# 真机观察（v3.5–v3.6）：下拉刷新瞬间出现的裸 IP 连接，多为 80 端口，每次刷新 IP 不同，
-# 分布在腾讯云国际(HK)、百度云、上海电信。疑似多线路私有数据通道（或 80 端口 UDP 私有协议）。
-# 仅作用于裸 IP 连接（拼多多域名请求已由上方 host-suffix 放行），按 /24 拦截以覆盖轮换。
-# 114.110.96–98 与 101.226.46 段亦见于 zirawell/R-Store 拼多多列表。
 ip-cidr, 43.135.65.0/24, reject
 ip-cidr, 43.135.84.0/24, reject
 ip-cidr, 129.226.98.0/24, reject
@@ -97,35 +113,15 @@ ip-cidr, 114.110.96.0/24, reject
 ip-cidr, 114.110.97.0/24, reject
 ip-cidr, 114.110.98.0/24, reject
 ip-cidr, 101.226.46.0/24, reject
-
-# --- 配置下发 / 统计上报（v4.0，必需）---
-# meta：疑似 App 配置中心，下拉刷新时会重新下发原版底栏，拦掉后保持冷启动时的净化结果。
-host, meta.pinduoduo.com, reject
-host, meta.yangkeduo.com, reject
-host, th.pinduoduo.com, reject
-host, th-a.pinduoduo.com, reject
-host, th-b.pinduoduo.com, reject
-host, ta.pinduoduo.com, reject
-host, ta-a.pinduoduo.com, reject
-host, apm-a.pinduoduo.com, reject
-
-# --- 拼多多自有 HTTPDNS（必需，v3.2）---
-# App 通过它直接拿到 Titan IP 后按 IP 直连，可绕过上面的域名拦截。
-host, dns.pinduoduo.com, reject
-host, httpdns.pinduoduo.com, reject
-host, dns.yangkeduo.com, reject
-host, httpdns.yangkeduo.com, reject
 ip-cidr, 81.69.130.121/32, reject
 ip-cidr, 81.69.130.131/32, reject
 ip-cidr, 121.5.84.15/32, reject
 ip-cidr, 121.5.84.85/32, reject
 ip-cidr, 118.126.69.55/32, reject
-
-# --- 性能监控 / 广告素材（可选，拦掉不影响购物）---
-host, apm.pinduoduo.com, reject
-host, cdl-1.pddpic.com, reject
-host, cdl-p2.pddpic.com, reject
-host, cd-1.pddpic.com, reject
-
-# 可选：推送网关。开启后收不到拼多多推送通知，默认关闭，需要时去掉行首分号
-;host-suffix, xg.pinduoduo.com, reject
+ip6-cidr, 2402:4e00:c030:1b00::3a/128, reject
+ip6-cidr, 2402:4e00:c030:1b00::e/128, reject
+ip6-cidr, 2402:4e00:c030:1b00::60/128, reject
+ip6-cidr, 2402:4e00:c030:1b00::63/128, reject
+ip6-cidr, 2402:4e00:c032:200::22/128, reject
+ip6-cidr, 2402:4e00:c032:200::a8/128, reject
+ip6-cidr, 240d:c000:f000:ac00:3896:d1ce:30a2:1/128, reject
