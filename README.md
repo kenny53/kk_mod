@@ -75,6 +75,7 @@ udp_whitelist = 1-442, 444-65535
 
 ## 更新日志
 
+- v3.3.1（2026-11-12）：v3.3 真机：刷新仍无通知、底栏回 5 个。仅调试版改动：临时 MitM 全部 pinduoduo/yangkeduo/pinduoduo.net 子域，任一响应出现底栏/月卡字段即弹通知并报出域名，用于排查刷新是否走了其它 HTTPS 域名。主版不变。
 - v3.3（2026-11-12）：真机调试通知确认：冷启动 hub 经 HTTPS 命中（5→3），下拉刷新**无通知**、底栏回 5 个——刷新数据仍走 Titan 裸 IP 直连。Titan 与购物接口共用网关 IP，Surge/Loon 版（ZenmoFeiShi）用 `no-resolve` 区分“按域名访问”与“裸 IP 直连”；QX 无此参数，改用 QX 固定规则优先级（host > host-suffix > ip-cidr）模拟：`host-suffix` 放行拼多多域名请求，再按 IP 拦截 Titan 全量 IP（pinduoduo/yangkeduo 两侧 DNS 结果 + 内置 IP，含 IPv6）。**分流资源从本版起不得设置 force-policy**。待真机确认。
 - v3.2.1（2026-11-11）：真机确认下拉刷新同样命中 hub 且脚本已 5→3，但界面仍为 5 个——底栏另有来源或 App 有校验。仅升级调试版通知（报告 tab 字段名、同层字段、名字带 tab 的其它字段、请求参数名），主版行为不变。
 - v3.2（2026-11-11）：真机（调试版通知）确认冷启动 `/api/alexa/homepage/hub` 已命中并 `bottom_tabs 5→3`，但下拉刷新后回到 5 个。推断刷新经 Titan 下发：补拦 `titan(-mt).yangkeduo.com` 与 titan-mt 专用 IP，并切断拼多多自有 HTTPDNS（`dns`/`httpdns` × pinduoduo/yangkeduo 及其 IP），防止 App 拿到 Titan IP 后直连绕过域名拦截。所有新增 IP 均经多地 DNS 核对与购物接口无重叠。待真机确认。

@@ -1,6 +1,7 @@
 /*
  * 拼多多响应清理 — Quantumult X 原生全量版 v3.2.1（2026-11-11）
  *
+ * v3.3.1：调试通知标题在非 api.pinduoduo.com 域名时显示域名。
  * v3.2.1：调试版通知增加底栏结构信息（tab 字段名、同层字段、名字带 tab 的其它字段），主版行为不变。
  * v3.1：月卡入口改为按字段触发（任一已挂脚本的响应中出现即删，深度≤4）；
  *       DEBUG=true 时每次处理 hub 类接口都弹通知报告命中路径与删除结果
@@ -233,7 +234,7 @@
     }
 
     if (DEBUG && (/hub|personal/.test(url) || notes.length)) {
-      var path = url.split("?")[0].replace(/^https?:\/\/[^\/]+/, "");
+      var path = url.split("?")[0].replace(/^https?:\/\/(api\.pinduoduo\.com)?/, ""); // 非主接口域名时保留域名
       var qs = (url.split("?")[1] || "").split("&").map(function (p) { return p.split("=")[0]; }).filter(Boolean);
       $notify("PDD调试 " + path, ($response.body.length / 1024).toFixed(0) + "KB " +
         (changed ? "已修改" : "未修改") + (qs.length ? " 参数:" + qs.slice(0, 8).join(",") : ""),
