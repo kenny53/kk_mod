@@ -1,5 +1,5 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v3.4（2026-11-11）
+# 拼多多配套分流 — 原生全量版 v3.5（2026-11-11）
 # 【必需】拦截 Titan 私有长连接，使首页/个人中心等 API 回落到普通 HTTPS 接口
 # （api.pinduoduo.com），重写才能命中。
 # 用法：分流 → 引用 添加本地址，【不要设置策略覆盖 / force-policy】——每行自带策略，
@@ -77,6 +77,19 @@ ip6-cidr, 2402:4e00:c030:1b00::60/128, reject
 ip6-cidr, 2402:4e00:c030:1b00::63/128, reject
 ip6-cidr, 2402:4e00:c032:200::22/128, reject
 ip6-cidr, 2402:4e00:c032:200::a8/128, reject
+
+# 海外节点（v3.5，2026-11-12 以海外 DNS 实测：titan/titan-mt × pinduoduo/yangkeduo）
+ip-cidr, 49.51.78.195/32, reject
+ip-cidr, 49.51.130.105/32, reject
+ip-cidr, 43.173.159.124/32, reject
+ip-cidr, 43.173.159.244/32, reject
+ip-cidr, 119.28.183.248/32, reject
+ip-cidr, 124.156.122.186/32, reject
+ip-cidr, 162.62.221.18/32, reject
+ip-cidr, 170.106.62.26/32, reject
+ip6-cidr, 240d:c000:f000:ac00:3896:d1ce:30a2:1/128, reject
+# 真机观察：下拉刷新瞬间出现的裸 IP 连接（腾讯云海外段），疑似 App 内置 Titan 节点
+ip-cidr, 43.135.65.163/32, reject
 
 # --- 拼多多自有 HTTPDNS（必需，v3.2）---
 # App 通过它直接拿到 Titan IP 后按 IP 直连，可绕过上面的域名拦截。
