@@ -32,6 +32,16 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
 
 不想用远程引用时，可用 `pinduoduo_local.conf`，把其中 `[filter_local]` / `[rewrite_local]` / `[mitm]` 三段并入当前配置的同名段落。
 
+## 排障：仍然无效时，关闭 QUIC（UDP 443）
+
+拼多多可能走 QUIC（HTTP/3，UDP 443）连 `api.pinduoduo.com`，QX 解不开 QUIC，重写同样无从触发。Surge 会对 MITM 主机自动拦 QUIC，Loon 插件里也有专门的 QUIC 拦截，所以同一台手机上它们能生效而 QX 不行。QX 没有“只拦某个域名的 QUIC”的语法，只能在配置 `[general]` 段全局丢弃 UDP 443（App 会自动回落 TCP，日常使用一般无感）：
+
+```
+udp_whitelist = 1-442, 444-65535
+```
+
+若 `[general]` 里已有 `udp_whitelist` 行，改它而不要重复添加。改完需重启 QX 的 VPN 开关并杀掉拼多多后台。（待真机确认）
+
 ## 覆盖范围
 
 | 层 | 内容 |
