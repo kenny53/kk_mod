@@ -75,6 +75,12 @@ udp_whitelist = 1-442, 444-65535
 
 ## 更新日志
 
+- v4.0.1（2026-11-12）：按 Surge 公开模块逐项对账（自动化测试，见下）。修复脚本中搜索/订单页接口判断漏掉 yangkeduo 主机的问题。
+  - 响应体字段删除：19 项（含个人中心 5 项）在 api.pinduoduo.com / api.yangkeduo.com 两主机均 19/19 通过；
+  - 空 JSON 拦截：20 个接口 20/20 命中 reject-dict，另 ktt_gateway 推广流亦为 reject-dict；
+  - QUIC：QX 无“域名 + 协议”复合规则，等价处理为 [general] udp_whitelist = 1-442, 444-65535（全局丢弃 UDP 443）；
+  - 取件页：未引用任何第三方脚本，本仓暂不覆盖取件页；
+  - 差异：推送网关 xg.pinduoduo.com 默认不拦（拦后收不到拼多多推送），IP 直连 /d 通道按 IP 段拦截而非按 URL+UA。
 - v4.0（2026-11-12）：真机对照：Surge（公开模块）下拉刷新后底栏保持 3 个，QX v3.6 刷新回 5 个。逐项对比后：
   - 分流新增拦截配置下发 `meta.pinduoduo.com` / `meta.yangkeduo.com`（疑为刷新时重新下发原版底栏的来源）与统计 th/ta 系列、`apm-a`；撤回 v3.4 对 `m.pinduoduo.net` 的拦截（无效果且取件页依赖它）。
   - 重写新增一批推广/推荐接口的空 JSON 拦截；首页、个人中心、商品渲染脚本补充字段；弹窗聚合改为直接空 JSON。

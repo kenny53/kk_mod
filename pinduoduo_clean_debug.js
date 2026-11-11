@@ -1,6 +1,7 @@
 /*
  * 拼多多响应清理 — Quantumult X 原生全量版 v4.0（2026-11-12）
  *
+ * v4.0.1：搜索与订单页的接口判断补上 yangkeduo 主机。
  * v4.0：首页增删金刚区 icon_set 与顶部频道推广图；个人中心增删推广样式区/横幅/推广图标；
  *       直播区只删悬浮信息。字段清单参考公开接口结构，实现原创。
  * v3.7：调试版在原始响应文本中搜底栏标记（pdd_live_tab_list 等），覆盖非 JSON 与字符串内嵌。
@@ -258,7 +259,7 @@
           });
       });
     }
-    if (/pinduoduo\.com\/search/.test(url)) {
+    if (/(pinduoduo|yangkeduo)\.com\/search/.test(url)) {
       // 搜索页：推广扩展区
       roots().forEach(function (r) {
         del(r, "expansion");
@@ -283,7 +284,7 @@
         });
       }
     }
-    if (/pinduoduo\.com\/order\//.test(url)) {
+    if (/(pinduoduo|yangkeduo)\.com\/order\//.test(url)) {
       // 订单页：营销横幅 + 物流页上方推荐
       roots().forEach(function (r) {
         del(r, "marketing_banner_vo");
