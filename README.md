@@ -57,4 +57,5 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo_filter.list
 
 ## 更新日志
 
+- v2.1（2026-11-11）：真机反馈底栏仍为 5 个后的针对性修复——底栏过滤改为按字段触发（任一已挂脚本的响应里出现 `bottom_tabs` 即处理）并递归深层查找；重写规则放宽为 pinduoduo/yangkeduo 双主机，且不再要求接口 URL 带查询参数。
 - v2.0（2026-11-11）：全量版首发。合并 v1（oak/个人中心/开屏/推广流）与底栏、弹窗、搜索、订单覆盖。
