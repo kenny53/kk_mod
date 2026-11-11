@@ -1,21 +1,19 @@
 #!name = 拼多多去广告（Quantumult X 原生全量版）
-#!desc = 开屏拦截、底栏精简、全局弹窗、首页/个人中心/订单页推广清理。v2.2 起改用 QX 原生 jsonjq 重写（与 Loon 同机制），不再依赖 JS 脚本。
+#!desc = v2.3 二分测试版：基线同 v2.1（脚本版），仅个人中心一条改用最简 jsonjq 验证机制。
 #!author = Rumi for Nero
 #!date = 2026-11-11
-#!version = 2.2
+#!version = 2.3
 # 礼仪说明：本文件为独立原创实现，未复制/转写 ZenmoFeiShi、可莉的任何文件；
 # 底栏/弹窗净化方向与 ZenmoFeiShi/Qx 原生 snippet 一致，特此致谢（原版见其仓库）。
 # 与可莉的 Loon 插件无代码关系，未使用其分发资源。仅供个人学习自用。
 
 # ============ 使用前必读 ============
-# 1. 本文件托管于 kenny53/kk_mod。
+# 1. 本文件托管于 kenny53/kk_mod，脚本地址已指向该仓库。
 # 2. QX 中开启重写 + MITM 并信任证书；确认下方 hostname 已并入 MITM 名单。
-#    需要较新的 Quantumult X 版本（官方 sample v1.5.5 已含 jsonjq-response-body）。
 # 3. 同一 App 不要叠加其它拼多多重写（薯条 ZenmoFeiShi/Qx 的 Pinduoduo.snippet
 #    与本文件覆盖重叠，二选一即可）。
-# 4. v2.2 说明：v2.0/v2.1 的 script-response-body 在真机上未生效（QX 对脚本型
-#    body 重写有 1024KB 上限，拼多多首页/个人中心响应过大被跳过），故全部改用
-#    QX 原生 jsonjq-response-body，与 Loon 插件的 http-response-jq 同机制。
+# 4. v2.1：脚本改为按字段触发底栏过滤并深层查找；规则放宽为双主机、
+#    不再要求接口 URL 必须带查询参数。
 
 # --- 第一层：纯推广接口，直接拦截 ---
 
@@ -25,33 +23,16 @@
 # 个人中心活动推广流（纯推广接口，返回空字典避免报错重试）
 ^https?:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ktt_gateway\/activity\/feeds\/personal_home_page\/ url reject-dict
 
-# --- 第二层：jsonjq 响应体清理（每接口一条，表达式已做缺失字段保护） ---
+# --- 第二层：响应体清理（统一脚本，按字段与接口分流处理） ---
 
-# 首页 hub：删会场横幅/热搜推广词；底栏与缓冲底栏只保留 首页/聊天/个人中心（过滤后为空则保持原样）
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url jsonjq-response-body 'delpaths([["result","dy_module","irregular_banner_dy"],["result","search_bar_hot_query"]]) | if (.result.bottom_tabs? | type) == "array" then .result.bottom_tabs |= (if (map(select((((.link // "") | split("[?#]")[0] | split("/")[-1]) as $p | ($p == "index.html" or $p == "chat_list.html" or $p == "personal.html")))) | length) > 0 then map(select((((.link // "") | split("[?#]")[0] | split("/")[-1]) as $p | ($p == "index.html" or $p == "chat_list.html" or $p == "personal.html")))) else . end) else . end | if (.result.buffer_bottom_tabs? | type) == "array" then .result.buffer_bottom_tabs |= (if (map(select((((.link // "") | split("[?#]")[0] | split("/")[-1]) as $p | ($p == "index.html" or $p == "chat_list.html" or $p == "personal.html")))) | length) > 0 then map(select((((.link // "") | split("[?#]")[0] | split("/")[-1]) as $p | ($p == "index.html" or $p == "chat_list.html" or $p == "personal.html")))) else . end) else . end'
-
-# oak 渲染：删底部推广区与直播浮窗（顶层与 result 层都处理）
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url jsonjq-response-body 'delpaths([["bottom_section_list"],["ui","bottom_section"],["ui","live_section"],["result","bottom_section_list"],["result","ui","bottom_section"],["result","ui","live_section"]])'
-
-# 个人中心 hub：删月卡推广入口
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url jsonjq-response-body 'del(.monthly_card_entrance?) | del(.result.monthly_card_entrance?)'
-
-# 全局弹窗：清空弹窗列表
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url jsonjq-response-body 'if (.list? | type) == "array" then .list = [] else . end | if (.result.list? | type) == "array" then .result.list = [] else . end'
-
-# 弹窗聚合：valid_data 置 false
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/growth\/nagato\/app\/index\/gather url jsonjq-response-body 'if .valid_data? == true then .valid_data = false else . end | if .result.valid_data? == true then .result.valid_data = false else . end'
-
-# 搜索：删推广扩展区
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url jsonjq-response-body 'del(.expansion?) | del(.result.expansion?)'
-
-# 订单详情：删底部推荐商品
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url jsonjq-response-body 'del(.data.goods_list?) | del(.goods_list?) | del(.result.goods_list?)'
-
-# 订单列表：删按钮上的增长提示
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url jsonjq-response-body 'if (.orders? | type) == "array" then .orders |= map(if (.order_buttons? | type) == "array" then .order_buttons |= map(del(.order_growth_tip)) else . end) else . end | if (.result.orders? | type) == "array" then .result.orders |= map(if (.order_buttons? | type) == "array" then .order_buttons |= map(del(.order_growth_tip)) else . end) else . end'
-
-# 订单页：删营销横幅与物流页上方推荐
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url jsonjq-response-body 'del(.marketing_banner_vo?) | if (.shipping? | type) == "object" then del(.shipping.banner_above_recommend) else . end'
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url jsonjq-response-body 'del(.monthly_card_entrance?)'
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/growth\/nagato\/app\/index\/gather url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
 
 hostname = api.pinduoduo.com, api.yangkeduo.com

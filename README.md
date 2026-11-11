@@ -57,6 +57,7 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo_filter.list
 
 ## 更新日志
 
+- v2.3（2026-11-11）：二分测试版。v2.2 真机反馈广告全面回归（连原本有效的开屏 reject 都失效，疑似整条资源解析失败——长 jq 行中的特殊字符或资源解析器所致）。本版回到 v2.1 基线（开屏等 reject 恢复），仅把个人中心一条换成最简 jsonjq `del(.monthly_card_entrance?)` 单独验证 jq 机制；其余接口仍用 JS 脚本版。
 - v2.2（2026-11-11）：机制切换。真机确认 v2.0/v2.1 的 `script-response-body` 未生效（QX 对脚本型 body 重写的 1024KB 上限，拼多多首页/个人中心响应过大被跳过；而 Surge/Loon 用 jq 不受此限、同接口同字段在其上有效）。全部改用 QX 原生 `jsonjq-response-body`（QX 官方 sample v1.5.5 已支持，与 Loon 的 `http-response-jq` 同机制），每接口一条组合 jq 表达式，均已在本地用真实 jq 验证（含字段缺失时原样通过）。`pinduoduo_clean.js` 自本版起弃用，保留在仓库仅作历史参考。
 - v2.1（2026-11-11）：真机反馈底栏仍为 5 个后的针对性修复——底栏过滤改为按字段触发（任一已挂脚本的响应里出现 `bottom_tabs` 即处理）并递归深层查找；重写规则放宽为 pinduoduo/yangkeduo 双主机，且不再要求接口 URL 带查询参数。
 - v2.0（2026-11-11）：全量版首发。合并 v1（oak/个人中心/开屏/推广流）与底栏、弹窗、搜索、订单覆盖。
