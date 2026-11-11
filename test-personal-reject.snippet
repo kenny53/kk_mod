@@ -1,8 +1,11 @@
-#!name = 【诊断测试】个人中心接口 reject 探针
-#!desc = 临时测试用：若本资源生效，打开拼多多个人中心会加载失败/空白；测完请删除或停用本资源。
-#!version = 1.0
+#!name = 【诊断探针】kk_mod 双探针
+#!desc = 临时测试用，测完请删除。探针A：Safari 打开 https://example.com/kkprobe 会跳到本仓库 GitHub 页 = 本仓库远程重写资源在你的 QX 里能执行。探针B：拼多多个人中心加载失败/空白 = 拼多多请求经过了 QX 重写。
+#!version = 2.0
 
-# 探针：直接拦截个人中心 hub 接口（与开屏同为 reject 机制）
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url reject
+# 探针 A：与拼多多无关，只验证“远程重写资源是否被执行”
+^https?:\/\/example\.com\/kkprobe url 302 https://github.com/kenny53/kk_mod
 
-hostname = api.pinduoduo.com, api.yangkeduo.com
+# 探针 B：拦截个人中心 hub 接口
+^https?:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url reject
+
+hostname = example.com, api.pinduoduo.com, api.yangkeduo.com
