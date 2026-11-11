@@ -1,6 +1,7 @@
 /*
  * 拼多多响应清理 — Quantumult X 原生全量版 v3.4（2026-11-12）
  *
+ * v3.7：调试版在原始响应文本中搜底栏标记（pdd_live_tab_list 等），覆盖非 JSON 与字符串内嵌。
  * v3.6.1：调试通知标题加时间（时:分:秒）；统计上报域名不再弹通知；空正文改为“-”避免显示 (null)。
  * v3.4：调试版对空响应/非 JSON 响应也弹通知（显示域名、Content-Type、长度）。
  * v3.3.1：调试通知标题在非 api.pinduoduo.com 域名时显示域名。
@@ -48,6 +49,21 @@
       debugRaw("空响应");
       $done({});
       return;
+    }
+
+    // 调试：在原始响应文本（不论 JSON/非 JSON/字符串内嵌）里搜底栏标记，报告位置与上下文
+    if (DEBUG) {
+      var raw = String($response.body);
+      ["pdd_live_tab_list", "attendance.html", "bottom_tabs"].forEach(function (m) {
+        var at = raw.indexOf(m);
+        if (at === -1) return;
+        var cnt = raw.split(m).length - 1;
+        var ctx = raw.slice(Math.max(0, at - 80), at + 40).replace(/[^ -~一-龥]/g, "·");
+        var h = $response.headers || {};
+        $notify(stamp() + " PDD标记[" + m + "×" + cnt + "] " + url.split("?")[0].replace(/^https?:\/\//, ""),
+          "类型:" + (h["Content-Type"] || h["content-type"] || "?") + " 位置:" + at + "/" + raw.length,
+          ctx);
+      });
     }
     var notes = [];
     var BIG = "__pdd_bigint__";
