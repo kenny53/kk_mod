@@ -53,7 +53,7 @@ udp_whitelist = 1-442, 444-65535
 | 全局弹窗 | `hungary/global` 清空弹窗列表；`nagato/gather` 各弹窗子对象置 `valid_data=false` |
 | 搜索 | 删推广扩展区 `expansion` |
 | 订单 | 订单详情删底部推荐 `goods_list`；订单列表删 `order_growth_tip`；订单页删营销横幅 `marketing_banner_vo`、物流页推荐 |
-| 分流（必需） | Titan 长连接域名 reject（生效前提）；另含 apm 监控、广告素材 CDN 子域 |
+| 分流（必需） | Titan 长连接域名（pinduoduo / yangkeduo）、titan-mt 专用 IP、拼多多自有 HTTPDNS reject（生效前提）；另含 apm 监控、广告素材 CDN 子域 |
 
 脚本原则：只删上列推广/布局字段，不动商品、价格、订单金额；字段不存在即跳过，解析失败或异常一律原样放行。16 位以上的长整数（订单号、商品 ID 等）在解析前做占位保护、输出时原样还原，不会因 JS 数字精度被改写。
 
@@ -75,6 +75,7 @@ udp_whitelist = 1-442, 444-65535
 
 ## 更新日志
 
+- v3.2（2026-11-11）：真机（调试版通知）确认冷启动 `/api/alexa/homepage/hub` 已命中并 `bottom_tabs 5→3`，但下拉刷新后回到 5 个。推断刷新经 Titan 下发：补拦 `titan(-mt).yangkeduo.com` 与 titan-mt 专用 IP，并切断拼多多自有 HTTPDNS（`dns`/`httpdns` × pinduoduo/yangkeduo 及其 IP），防止 App 拿到 Titan IP 后直连绕过域名拦截。所有新增 IP 均经多地 DNS 核对与购物接口无重叠。待真机确认。
 - v3.1（2026-11-11）：
   - **纠错**：前几轮真机测试期间用户 QX 的 MitM 开关处于关闭状态，v2.x–v3.0 的“零效果”结论及其上的推断（含 QUIC 排障）均在 MitM 关闭下得出，不再作为依据。MitM 打开后：Safari 探针生效；冷启动底栏 3 个，但下拉刷新后回到 5 个，月卡仍在。
   - **撤回 v3.0 的 Titan IP 拦截**：多地 DNS 实测 Titan 与 `api.pinduoduo.com`、`api.yangkeduo.com` 解析到同一批网关 IP，按 IP 拦截会误伤购物接口，疑为“刷新后回到 5 个”的原因（待真机确认）。分流只保留域名拦截。
