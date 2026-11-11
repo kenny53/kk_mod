@@ -1,5 +1,5 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v3.6（2026-11-11）
+# 拼多多配套分流 — 原生全量版 v4.0（2026-11-12）
 # 【必需】拦截 Titan 私有长连接，使首页/个人中心等 API 回落到普通 HTTPS 接口
 # （api.pinduoduo.com），重写才能命中。
 # 用法：分流 → 引用 添加本地址，【不要设置策略覆盖 / force-policy】——每行自带策略，
@@ -13,8 +13,6 @@ host, titan.pinduoduo.com, reject
 host, titan-mt.pinduoduo.com, reject
 host, titan.yangkeduo.com, reject
 host, titan-mt.yangkeduo.com, reject
-# m.pinduoduo.net：与购物接口同网关，疑似另一条私有数据通道，v3.4 起拦截（zirawell/R-Store 拼多多列表亦启用此条）
-host, m.pinduoduo.net, reject
 # titan-mt 专用 IP（2026-11-11 多地 DNS 实测，与购物接口无重叠）
 ip-cidr, 49.234.0.11/32, reject
 ip-cidr, 49.234.0.114/32, reject
@@ -99,6 +97,17 @@ ip-cidr, 114.110.96.0/24, reject
 ip-cidr, 114.110.97.0/24, reject
 ip-cidr, 114.110.98.0/24, reject
 ip-cidr, 101.226.46.0/24, reject
+
+# --- 配置下发 / 统计上报（v4.0，必需）---
+# meta：疑似 App 配置中心，下拉刷新时会重新下发原版底栏，拦掉后保持冷启动时的净化结果。
+host, meta.pinduoduo.com, reject
+host, meta.yangkeduo.com, reject
+host, th.pinduoduo.com, reject
+host, th-a.pinduoduo.com, reject
+host, th-b.pinduoduo.com, reject
+host, ta.pinduoduo.com, reject
+host, ta-a.pinduoduo.com, reject
+host, apm-a.pinduoduo.com, reject
 
 # --- 拼多多自有 HTTPDNS（必需，v3.2）---
 # App 通过它直接拿到 Titan IP 后按 IP 直连，可绕过上面的域名拦截。

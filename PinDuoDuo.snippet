@@ -1,39 +1,56 @@
 #!name = 拼多多去广告（Quantumult X 原生全量版）
-#!desc = v3.6：需配合分流 PinDuoDuo_filter.list（拦截 Titan 长连接）才会生效。
+#!desc = v4.0：需配合分流 PinDuoDuo_filter.list（不要设策略覆盖）才会完整生效。
 #!author = Rumi for Nero
-#!date = 2026-11-11
-#!version = 3.6
-# 礼仪说明：本文件为独立原创实现，未复制/转写 ZenmoFeiShi、可莉的任何文件；
-# 底栏/弹窗净化方向与 Titan 长连接拦截思路参考 ZenmoFeiShi/Qx 原生 snippet，特此致谢。
-# 与可莉的 Loon 插件无代码关系，未使用其分发资源。仅供个人学习自用。
+#!date = 2026-11-12
+#!version = 4.0
+# 礼仪说明：本文件为独立原创实现，未复制/转写任何第三方插件的规则或脚本文本。
+# 底栏/弹窗净化方向与 Titan 拦截思路参考 ZenmoFeiShi/Qx，特此致谢；
+# v4.0 补充的接口/字段清单参考公开 Surge 模块披露的拼多多接口结构事实，实现为本仓原创。
+# 仅供个人学习自用。
 
 # ============ 使用前必读 ============
 # 1. 【必需】分流 → 引用 添加 PinDuoDuo_filter.list（不要设策略覆盖，排在宽泛直连之前）。
-#    拼多多默认把 API 走 Titan 私有长连接，不拦它本文件不会命中任何请求。
-# 2. 本文件请加在「重写 → 引用」（不是分流），开启重写 + MITM 并信任证书。
-# 3. 同一 App 不要叠加其它拼多多重写（ZenmoFeiShi/Qx 的 Pinduoduo.snippet 二选一）。
+# 2. 本文件加在「重写 → 引用」，开启重写 + MitM 并信任证书。
+# 3. [general] 建议 udp_whitelist = 1-442, 444-65535（关闭 QUIC，逼回落 TCP 以便解密）。
+# 4. 同一 App 不要叠加其它拼多多重写。
 
-# --- 第一层：纯推广接口，直接拦截 ---
+# --- 第一层：纯推广/推荐接口，直接拦截或返回空 JSON ---
 
-# 开屏广告
+# 开屏
 ^https?:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/cappuccino\/splash url reject
-
-# 个人中心活动推广流（纯推广接口，返回空字典避免报错重试）
+# 个人中心活动推广流
 ^https?:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ktt_gateway\/activity\/feeds\/personal_home_page\/ url reject-dict
+# 首页弹窗聚合、全屏弹窗
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/growth\/nagato\/app\/index\/gather url reject-dict
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aquarius\/hungary\/global\/homepage url reject-dict
+# 搜索热词推广
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search_hotquery url reject-dict
+# 订单相关推广：待收货/待评价提示、订单列表推广标签、物流/订单/个人页/聊天/猜你喜欢推荐
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/(unrated_order_for_unreceived_tab|query_order_list_tabs_element) url reject-dict
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/(order_express_group|my_order_group|new_chat_group|personal|likes)(\?|$) url reject-dict
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v2\/query\/goods_detail_with_tags url reject-dict
+# 评价引导
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/engels\/(reviews\/require\/append|wait\/receive\/review) url reject-dict
+# 商品页：百亿补贴引导、备用推荐
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/brand-olay\/goods_detail\/bybt_guide url reject-dict
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/goods\/back_up url reject-dict
+# 聊天页推广资源
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/zaire_biz\/chat\/resource\/get_list_data url reject-dict
+# 其它推广/推荐：快捷入口、灵动岛直播推送、附加推荐
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(phantom\/gbdbpdv\/extra|manufacturer\/cross\/shortcut\/list|dunkirk\/liveactivity\/push\/create\/url\/report|buffon\/nasus\/recommend) url reject-dict
 
-# --- 第二层：响应体清理（统一脚本，按字段与接口分流处理） ---
+# --- 第二层：响应体清理（本仓脚本，按接口与字段处理） ---
 
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/growth\/nagato\/app\/index\/gather url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
 
-# 兜底：其余 alexa / philo 接口（含刷新、个人中心新路径），脚本按字段处理底栏与月卡
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js
+# 兜底：其余 alexa / philo 接口，脚本按字段处理底栏与月卡
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean.js?v=4.0
 
 hostname = api.pinduoduo.com, api.yangkeduo.com

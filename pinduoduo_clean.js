@@ -1,6 +1,8 @@
 /*
- * 拼多多响应清理 — Quantumult X 原生全量版 v3.4（2026-11-12）
+ * 拼多多响应清理 — Quantumult X 原生全量版 v4.0（2026-11-12）
  *
+ * v4.0：首页增删金刚区 icon_set 与顶部频道推广图；个人中心增删推广样式区/横幅/推广图标；
+ *       直播区只删悬浮信息。字段清单参考公开接口结构，实现原创。
  * v3.7：调试版在原始响应文本中搜底栏标记（pdd_live_tab_list 等），覆盖非 JSON 与字符串内嵌。
  * v3.6.1：调试通知标题加时间（时:分:秒）；统计上报域名不再弹通知；空正文改为“-”避免显示 (null)。
  * v3.4：调试版对空响应/非 JSON 响应也弹通知（显示域名、Content-Type、长度）。
@@ -202,19 +204,36 @@
     }
 
     if (/\/api\/alexa\/homepage\/hub/.test(url)) {
-      // 首页：会场推广横幅 + 热搜推广词
+      // 首页：会场推广横幅、热搜推广词、金刚区推广图标，顶部频道去掉推广配图
       roots().forEach(function (r) {
         if (isObj(r.dy_module)) del(r.dy_module, "irregular_banner_dy");
         del(r, "search_bar_hot_query");
+        del(r, "icon_set");
+        if (Array.isArray(r.all_top_opts)) {
+          r.all_top_opts.forEach(function (o) {
+            ["selected_image", "image", "height", "width"].forEach(function (k) { del(o, k); });
+          });
+        }
+      });
+    }
+    if (/\/api\/philo\/personal\/hub/.test(url)) {
+      // 个人中心：月卡入口、推广样式区、推广横幅、推广图标（月卡入口另有按字段触发兜底）
+      roots().forEach(function (r) {
+        del(r, "personal_center_style_v2_vo");
+        del(r, "personal_banner");
+        if (isObj(r.icon_set)) {
+          del(r.icon_set, "icons");
+          del(r.icon_set, "top_personal_icons");
+        }
       });
     }
     if (/\/api\/oak\/integration\/render/.test(url)) {
-      // 渲染接口：底部推广区 + 直播浮窗
+      // 商品渲染接口：底部推广区 + 直播悬浮窗（只删悬浮信息，保留直播区结构）
       roots().forEach(function (r) {
         del(r, "bottom_section_list");
         if (isObj(r.ui)) {
           del(r.ui, "bottom_section");
-          del(r.ui, "live_section");
+          if (isObj(r.ui.live_section)) del(r.ui.live_section, "float_info");
         }
       });
     }
