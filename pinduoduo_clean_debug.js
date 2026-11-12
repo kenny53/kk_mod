@@ -1,6 +1,7 @@
 /*
- * 拼多多响应清理 — Quantumult X 原生全量版 v4.0（2026-11-12）
+ * 拼多多响应清理 — Quantumult X 原生全量版 v4.2（2026-11-12）
  *
+ * v4.2：所有经本脚本的响应删除 Alt-Svc 头（防刷新时升级 QUIC 绕过解密）；调试通知报告是否带 Alt-Svc。
  * v4.0.1：搜索与订单页的接口判断补上 yangkeduo 主机。
  * v4.0：首页增删金刚区 icon_set 与顶部频道推广图；个人中心增删推广样式区/横幅/推广图标；
  *       直播区只删悬浮信息。字段清单参考公开接口结构，实现原创。
@@ -29,6 +30,21 @@
     var DEBUG = true;
     var url = ($request && $request.url) || "";
 
+    // 删除 Alt-Svc 响应头：阻止 App 下拉刷新时升级到 QX 无法解密的 HTTP/3（QUIC）
+    var rawHeaders = ($response && $response.headers) || {};
+    var altSvc = "";
+    var cleanHeaders = {};
+    Object.keys(rawHeaders).forEach(function (k) {
+      if (/^alt-svc$/i.test(k)) altSvc = String(rawHeaders[k]);
+      else cleanHeaders[k] = rawHeaders[k];
+    });
+    function finish(body) {
+      var r = {};
+      if (body !== undefined) r.body = body;
+      if (altSvc) r.headers = cleanHeaders;
+      $done(r);
+    }
+
     // 调试：通知标题前加时间，区分冷启动与刷新；统计上报域名不报
     var NOISY = /^https?:\/\/(th|ta|th-a|th-b|ta-a)\.(pinduoduo|yangkeduo)\.com\//;
     function stamp() {
@@ -50,7 +66,7 @@
 
     if (!$response || !$response.body) {
       debugRaw("空响应");
-      $done({});
+      finish();
       return;
     }
 
@@ -119,11 +135,11 @@
       obj = JSON.parse(protectBigInts($response.body));
     } catch (e) {
       debugRaw("非JSON");
-      $done({});
+      finish();
       return;
     }
     if (!obj || typeof obj !== "object") {
-      $done({});
+      finish();
       return;
     }
 
@@ -296,14 +312,15 @@
       var path = url.split("?")[0].replace(/^https?:\/\/(api\.pinduoduo\.com)?/, ""); // 非主接口域名时保留域名
       var qs = (url.split("?")[1] || "").split("&").map(function (p) { return p.split("=")[0]; }).filter(Boolean);
       $notify(stamp() + " PDD调试 " + path, ($response.body.length / 1024).toFixed(0) + "KB " +
-        (changed ? "已修改" : "未修改") + (qs.length ? " 参数:" + qs.slice(0, 8).join(",") : ""),
+        (changed ? "已修改" : "未修改") + (altSvc ? " 已删Alt-Svc:" + altSvc.slice(0, 30) : " 无Alt-Svc") +
+        (qs.length ? " 参数:" + qs.slice(0, 8).join(",") : ""),
         notes.length ? notes.join(" | ") : "未发现底栏/月卡字段");
     }
 
     if (changed) {
-      $done({ body: restoreBigInts(JSON.stringify(obj)) });
+      finish(restoreBigInts(JSON.stringify(obj)));
     } else {
-      $done({});
+      finish();
     }
   } catch (e) {
     $done({});

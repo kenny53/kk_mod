@@ -33,7 +33,7 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
 
 不想用远程引用时，可用 `pinduoduo_local.conf`，把其中 `[filter_local]` / `[rewrite_local]` / `[mitm]` 三段并入当前配置的同名段落。
 
-## 排障：仍然无效时，关闭 QUIC（UDP 443）
+## 必需：关闭 QUIC（UDP 443）
 
 拼多多可能走 QUIC（HTTP/3，UDP 443）连 `api.pinduoduo.com`，QX 解不开 QUIC，重写同样无从触发。Surge 会对 MITM 主机自动拦 QUIC，Loon 插件里也有专门的 QUIC 拦截，所以同一台手机上它们能生效而 QX 不行。QX 没有“只拦某个域名的 QUIC”的语法，只能在配置 `[general]` 段全局丢弃 UDP 443（App 会自动回落 TCP，日常使用一般无感）：
 
@@ -69,12 +69,14 @@ udp_whitelist = 1-442, 444-65535
 - `PinDuoDuo.snippet` — 重写引用入口
 - `pinduoduo_clean.js` — 响应清理脚本（v3.0 起所有 body 类规则统一使用）
 - `PinDuoDuo_filter.list` — 配套分流规则（**必需**，含 Titan 拦截）
+- `pinduoduo_header.js` — 响应头脚本：删除拼多多 API 的 `Alt-Svc` 头，防止 App 升级到 HTTP/3（QUIC）
 - `PinDuoDuo_debug.snippet` + `pinduoduo_clean_debug.js` — 调试版：规则同主版，脚本处理首页/个人中心接口时弹通知报告命中路径与删除结果（调试脚本由主脚本把 `DEBUG` 改为 true 生成）
 - `pinduoduo_local.conf` — 本地版（分流 + 重写 + MITM 三段）
 - `test-personal-reject.snippet` — 诊断探针（个人中心接口单行 reject，测完删除）
 
 ## 更新日志
 
+- v4.2（2026-11-12）：v4.1 真机（用户更正前次口误）：首页下拉刷新后底栏仍回 5 个，冷启动已去掉的红包、限时秒杀框也一起回来；`meta` 已确认 REJECT。冷启动走 TCP 时重写生效、刷新后整份原版首页回归，且刷新时无 hub 调试通知，符合“首个响应的 `Alt-Svc` 头通告 HTTP/3 → 后续请求改走 QUIC → QX 无法解密”的模式（Surge 版对 `api.pinduoduo.com` 的 QUIC 拦截也是针对这一点）。新增两道防线：所有拼多多 API 响应删除 `Alt-Svc` 头（body 脚本与新增的末尾 header 兜底脚本）；`[general]` 的 `udp_whitelist` 由建议改为必需。待真机确认。
 - v4.1（2026-11-12）：**修正分流顺序错误（v3.3 引入）**。真机：QX 连接记录显示 `apm-a`、`meta` 命中本分流但策略为 DIRECT——同一资源内 QX 按从上到下首条命中匹配，而 v3.3 起插在中间的 `host-suffix, pinduoduo.com, direct` 抢先放行了排在其后的所有域名拦截（meta、th/ta、apm-a、自有 HTTPDNS 等），v3.3–v4.0 期间这些拦截实际未生效，仅排在其前的 Titan 4 条有效。v4.1 重排为：全部域名拦截 → 拼多多域名放行 → 裸 IP 拦截。
 - v4.0.1（2026-11-12）：按 Surge 公开模块逐项对账（自动化测试，见下）。修复脚本中搜索/订单页接口判断漏掉 yangkeduo 主机的问题。
   - 响应体字段删除：19 项（含个人中心 5 项）在 api.pinduoduo.com / api.yangkeduo.com 两主机均 19/19 通过；
