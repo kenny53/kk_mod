@@ -1,6 +1,8 @@
 /*
- * 拼多多响应清理 — Quantumult X 原生全量版 v4.2（2026-11-12）
+ * 拼多多响应清理 — Quantumult X 原生全量版 v4.3（2026-11-12）
  *
+ * v4.3：首页推广清理同样作用于下拉刷新时的 /api/alexa/cells/hub；irregular_banner_dy 深层删除；
+ *       调试版在 alexa 接口中搜“秒杀”“11.11”等标记并报告字段结构。
  * v4.2：所有经本脚本的响应删除 Alt-Svc 头（防刷新时升级 QUIC 绕过解密）；调试通知报告是否带 Alt-Svc。
  * v4.0.1：搜索与订单页的接口判断补上 yangkeduo 主机。
  * v4.0：首页增删金刚区 icon_set 与顶部频道推广图；个人中心增删推广样式区/横幅/推广图标；
@@ -73,7 +75,10 @@
     // 调试：在原始响应文本（不论 JSON/非 JSON/字符串内嵌）里搜底栏标记，报告位置与上下文
     if (DEBUG) {
       var raw = String($response.body);
-      ["pdd_live_tab_list", "attendance.html", "bottom_tabs"].forEach(function (m) {
+      var MARKS = ["pdd_live_tab_list", "attendance.html", "bottom_tabs"];
+      // 首页推广定位：只在 alexa 接口里搜，减少噪音
+      if (/\/api\/alexa\//.test(url)) MARKS = MARKS.concat(["秒杀", "11.11", "irregular_banner_dy", "icon_set"]);
+      MARKS.forEach(function (m) {
         var at = raw.indexOf(m);
         if (at === -1) return;
         var cnt = raw.split(m).length - 1;
@@ -199,6 +204,12 @@
     }
     filterTabsIn(obj, 0, "");
 
+    // 调试：alexa 其它接口报告顶层与 result 的字段名，定位推广模块
+    if (DEBUG && /\/api\/alexa\//.test(url) && !/\/homepage\/hub/.test(url)) {
+      notes.push("顶层:" + Object.keys(obj).slice(0, 15).join(","));
+      if (isObj(obj.result)) notes.push("result:" + Object.keys(obj.result).slice(0, 25).join(","));
+    }
+
     // 调试：全响应（含数组内）查找名字带 tab 的其它数组/对象字段，排查底栏的其它来源
     if (DEBUG) {
       var seen = 0;
@@ -220,8 +231,18 @@
       })(obj, "", 0);
     }
 
-    if (/\/api\/alexa\/homepage\/hub/.test(url)) {
-      // 首页：会场推广横幅、热搜推广词、金刚区推广图标，顶部频道去掉推广配图
+    if (/\/api\/alexa\/(homepage|cells)\/hub/.test(url)) {
+      // 首页（含下拉刷新时的 cells/hub）：会场推广横幅、热搜推广词、金刚区推广图标，顶部频道去掉推广配图
+      // irregular_banner_dy 为会场推广专用字段，向下查找（深度≤6）一并删除
+      (function dropBanner(node, depth) {
+        if (!node || typeof node !== "object" || depth > 6) return;
+        if (Array.isArray(node)) { node.forEach(function (x) { dropBanner(x, depth + 1); }); return; }
+        if (Object.prototype.hasOwnProperty.call(node, "irregular_banner_dy")) {
+          del(node, "irregular_banner_dy");
+          notes.push("irregular_banner_dy 已删");
+        }
+        Object.keys(node).forEach(function (k) { dropBanner(node[k], depth + 1); });
+      })(obj, 0);
       roots().forEach(function (r) {
         if (isObj(r.dy_module)) del(r.dy_module, "irregular_banner_dy");
         del(r, "search_bar_hot_query");

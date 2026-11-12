@@ -1,5 +1,5 @@
 # ============================================================
-# 拼多多配套分流 — 原生全量版 v4.1（2026-11-12）
+# 拼多多配套分流 — 原生全量版 v4.3（2026-11-12）
 # 【必需】拦截 Titan 私有长连接、自有 HTTPDNS、配置下发与统计，使首页等 API 回落到
 # 普通 HTTPS 接口（api.pinduoduo.com），重写才能命中。
 # 用法：分流 → 引用 添加本地址，【不要设置策略覆盖 / force-policy】——每行自带策略，
@@ -125,3 +125,37 @@ ip6-cidr, 2402:4e00:c030:1b00::63/128, reject
 ip6-cidr, 2402:4e00:c032:200::22/128, reject
 ip6-cidr, 2402:4e00:c032:200::a8/128, reject
 ip6-cidr, 240d:c000:f000:ac00:3896:d1ce:30a2:1/128, reject
+
+# ===== 第四段：拼多多 API 网关裸 IP（v4.3）=====
+# App 用自有/第三方 HTTPDNS 拿到网关 IP 后按裸 IP 连接时，QX 看不到域名、无法解密，
+# 刷新时会拿到未处理的原版首页。按域名访问的请求已在第二段放行，不会落到这里；
+# 只有裸 IP 连接被拒，App 随即回落到按域名访问（可被解密）。
+# 2026-11-11/12 国内多地 + 海外 DNS 实测（api / yangkeduo / meta / mobile / m.pinduoduo.net）。
+ip-cidr, 101.226.152.0/24, reject
+ip-cidr, 117.185.242.0/24, reject
+ip-cidr, 117.185.244.0/24, reject
+ip-cidr, 220.196.137.0/24, reject
+ip-cidr, 43.163.48.55/32, reject
+ip-cidr, 43.173.159.195/32, reject
+ip-cidr, 101.32.16.17/32, reject
+ip-cidr, 101.226.147.13/32, reject
+ip-cidr, 116.128.184.22/32, reject
+ip-cidr, 119.28.206.151/32, reject
+ip-cidr, 119.28.207.108/32, reject
+ip-cidr, 119.28.207.245/32, reject
+ip-cidr, 124.156.122.125/32, reject
+ip-cidr, 180.163.214.155/32, reject
+ip6-cidr, 2402:4e00:c030:1b00::/64, reject
+ip6-cidr, 2402:4e00:c032:200::/64, reject
+ip6-cidr, 2408:80f1:21:404d::/64, reject
+ip6-cidr, 2408:80f1:21:404e::/64, reject
+ip6-cidr, 2408:80f1:21:500a::/64, reject
+ip6-cidr, 2408:80f1:21:500c::/64, reject
+ip6-cidr, 2409:8c1e:75b0:3007::/64, reject
+ip6-cidr, 2409:8c1e:75b0:300e::/64, reject
+ip6-cidr, 2409:8c1e:75b0:4d::/64, reject
+ip6-cidr, 2409:8c1e:75b0:4e::/64, reject
+ip6-cidr, 240e:e1:aa00:1007::/64, reject
+ip6-cidr, 240e:e1:aa00:100f::/64, reject
+ip6-cidr, 240e:e1:aa00:47::/64, reject
+ip6-cidr, 240e:e1:aa00:84::/64, reject

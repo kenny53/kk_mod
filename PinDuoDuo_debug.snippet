@@ -1,5 +1,5 @@
 #!name = 【调试版】拼多多去广告（会弹通知）
-#!desc = v4.2 与主版规则相同，脚本处理接口时弹通知报告命中与删除结果，并在原始响应中搜底栏标记。调试完换回主版。
+#!desc = v4.3 与主版规则相同，脚本处理接口时弹通知报告命中与删除结果，并在原始响应中搜底栏标记。调试完换回主版。
 #!author = Rumi for Nero
 #!date = 2026-11-12
 #!version = 4.0
@@ -13,6 +13,13 @@
 # 2. 本文件加在「重写 → 引用」，开启重写 + MitM 并信任证书。
 # 3. [general] 建议 udp_whitelist = 1-442, 444-65535（关闭 QUIC，逼回落 TCP 以便解密）。
 # 4. 同一 App 不要叠加其它拼多多重写。
+
+# --- 第零层：HTTPDNS 查询（v4.3）---
+# App 用明文 HTTP 向裸 IP 发 /d?dn=域名 查询，拿到网关 IP 后绕过系统 DNS 直连，
+# QX 因看不到域名而无法解密（首页刷新回到原版即此原因）。拦掉后 App 回落系统 DNS。
+# 注意：这两条按 URL 形态匹配，会同时影响其它使用同类 HTTPDNS 的 App（它们同样会回落系统 DNS）。
+^http:\/\/(\d{1,3}\.){3}\d{1,3}(:\d+)?\/d\d*\? url reject
+^http:\/\/\[[0-9a-fA-F:]+\](:\d+)?\/d\d*\? url reject
 
 # --- 第一层：纯推广/推荐接口，直接拦截或返回空 JSON ---
 
@@ -41,26 +48,26 @@
 
 # --- 第二层：响应体清理（本仓脚本，按接口与字段处理） ---
 
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/alexa\/homepage\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/philo\/personal\/hub url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/oak\/integration\/render url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(aquarius|flow)\/hungary\/(window\/)?global\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/search url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/caterham\/v3\/query\/order_detail_group url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/aristotle\/order_list_v4 url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/order\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
 
 # 兜底：其余 alexa / philo 接口，脚本按字段处理底栏与月卡
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/(alexa|philo)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
 
 # 调试兜底：其余所有 api 接口也过一遍脚本
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/api\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
 
 # 调试：解密 m.pinduoduo.net 及全部拼多多子域（与 Surge 解密 m.pinduoduo.net 对齐），定位首页刷新的底栏来源
-^https:\/\/[^\/]*(pinduoduo\.com|yangkeduo\.com|pinduoduo\.net)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.2
+^https:\/\/[^\/]*(pinduoduo\.com|yangkeduo\.com|pinduoduo\.net)\/ url script-response-body https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_clean_debug.js?v=4.3
 
 # 最后兜底（必须放在最后）：其余所有拼多多 API 响应删除 Alt-Svc 头，
 # 防止 App 下拉刷新时升级到 QX 无法解密的 HTTP/3（QUIC）
-^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/ url script-response-header https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_header.js?v=4.2
+^https:\/\/api\.(pinduoduo|yangkeduo)\.com\/ url script-response-header https://raw.githubusercontent.com/kenny53/kk_mod/main/pinduoduo_header.js?v=4.3
 
 hostname = api.pinduoduo.com, api.yangkeduo.com, m.pinduoduo.net, *.pinduoduo.com, *.yangkeduo.com
