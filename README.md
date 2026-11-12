@@ -33,7 +33,7 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
 
 不想用远程引用时，可用 `pinduoduo_local.conf`，把其中 `[filter_local]` / `[rewrite_local]` / `[mitm]` 三段并入当前配置的同名段落。
 
-## 建议：关闭 QUIC（UDP 443）
+## 排障：仍然无效时，关闭 QUIC（UDP 443）
 
 拼多多可能走 QUIC（HTTP/3，UDP 443）连 `api.pinduoduo.com`，QX 解不开 QUIC，重写同样无从触发。Surge 会对 MITM 主机自动拦 QUIC，Loon 插件里也有专门的 QUIC 拦截，所以同一台手机上它们能生效而 QX 不行。QX 没有“只拦某个域名的 QUIC”的语法，只能在配置 `[general]` 段全局丢弃 UDP 443（App 会自动回落 TCP，日常使用一般无感）：
 
@@ -41,7 +41,7 @@ https://raw.githubusercontent.com/kenny53/kk_mod/main/PinDuoDuo.snippet
 udp_whitelist = 1-442, 444-65535
 ```
 
-若 `[general]` 里已有 `udp_whitelist` 行，改它而不要重复添加。改完需重启 QX 的 VPN 开关并杀掉拼多多后台。
+若 `[general]` 里已有 `udp_whitelist` 行，改它而不要重复添加。改完需重启 QX 的 VPN 开关并杀掉拼多多后台。（待真机确认）
 
 ## 覆盖范围
 
@@ -59,13 +59,10 @@ udp_whitelist = 1-442, 444-65535
 
 ## 已知边界
 
-- 真机验证状态（2026-11-12，iPhone 17 Pro Max / iOS 27.2 / QX TestFlight 版）：底栏冷启动与首页、聊天、个人页下拉刷新均为 3 个；首页无弹窗；商品页、订单正常。开屏未单独复测（用户另有去开屏规则）。
-- 个人中心月卡入口：已按字段删除，真机未确认效果，用户暂不跟进。
-- 取件页（`m.pinduoduo.net/mdkd/package`）广告本仓未覆盖。
-- QUIC：QX 无“域名 + 协议”复合规则，需在 `[general]` 用 `udp_whitelist = 1-442, 444-65535` 全局丢弃 UDP 443（见上文排障）。
-- Titan 不按 IP 直接拦：与购物接口共用网关 IP，靠分流“域名拦截 → 拼多多域名放行 → 裸 IP 拦截”的顺序区分；**分流资源不得设置策略覆盖**，也不要打乱行序。
-- 推送网关 `xg.pinduoduo.com` 默认不拦（拦后收不到拼多多推送）。
-- App 改版后接口、字段或 IP 可能变化；失效时用调试版（`PinDuoDuo_debug.snippet`）的通知定位。
+- Loon 原插件有一条针对 `api.pinduoduo.com` 的 QUIC 条件拦截，Quantumult X 无等价语法，本版未做（也未用全局禁 QUIC 替代）。
+- 首页图标区（icon_set）属于功能瘦身而非广告，本版未删。
+- 不按 IP 拦 Titan：Titan 与购物接口共用网关 IP（见 v3.1 日志）；若拦截后个别功能（如消息实时推送）变慢，属回落 HTTPS 的正常代价。
+- 本版已经过本地模拟测试（字段清理/放行/长整数保护），**尚未在真机拼多多上验证**；App 改版后接口字段可能变化，失效时以抓包结果为准更新。
 
 ## 文件
 
@@ -78,7 +75,7 @@ udp_whitelist = 1-442, 444-65535
 
 ## 更新日志
 
-- v4.1（2026-11-12）：**修正分流顺序错误（v3.3 引入）**。真机：QX 连接记录显示 `apm-a`、`meta` 命中本分流但策略为 DIRECT——同一资源内 QX 按从上到下首条命中匹配，而 v3.3 起插在中间的 `host-suffix, pinduoduo.com, direct` 抢先放行了排在其后的所有域名拦截（meta、th/ta、apm-a、自有 HTTPDNS 等），v3.3–v4.0 期间这些拦截实际未生效，仅排在其前的 Titan 4 条有效。v4.1 重排为：全部域名拦截 → 拼多多域名放行 → 裸 IP 拦截。 **真机确认**：首页下拉刷新后底栏保持 3 个，`meta.pinduoduo.com` 在 QX 连接记录中为 REJECT。
+- v4.1（2026-11-12）：**修正分流顺序错误（v3.3 引入）**。真机：QX 连接记录显示 `apm-a`、`meta` 命中本分流但策略为 DIRECT——同一资源内 QX 按从上到下首条命中匹配，而 v3.3 起插在中间的 `host-suffix, pinduoduo.com, direct` 抢先放行了排在其后的所有域名拦截（meta、th/ta、apm-a、自有 HTTPDNS 等），v3.3–v4.0 期间这些拦截实际未生效，仅排在其前的 Titan 4 条有效。v4.1 重排为：全部域名拦截 → 拼多多域名放行 → 裸 IP 拦截。
 - v4.0.1（2026-11-12）：按 Surge 公开模块逐项对账（自动化测试，见下）。修复脚本中搜索/订单页接口判断漏掉 yangkeduo 主机的问题。
   - 响应体字段删除：19 项（含个人中心 5 项）在 api.pinduoduo.com / api.yangkeduo.com 两主机均 19/19 通过；
   - 空 JSON 拦截：20 个接口 20/20 命中 reject-dict，另 ktt_gateway 推广流亦为 reject-dict；
